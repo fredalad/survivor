@@ -63,6 +63,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .ptab.on{color:var(--ink);border-bottom-color:var(--pc)}
 .ptab .cnt{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
 .ptab.add:hover{color:var(--ink)}
+.ptab .lock{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.06em;font-size:10px;color:var(--muted);border:1px solid var(--line-strong);border-radius:3px;padding:0 4px}
 
 /* summary */
 .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
@@ -208,6 +209,9 @@ const TIER_ORDER = ["S","A","B","C","D","DS"];
 const TEAMS = Object.keys(NAMES).sort();
 const PATH_COLORS = ["#B98A12","#2D7DD2","#2E9E6B","#C24C7A","#7A55C9","#D26D2D"];
 const PULLED = "Sep 9, 2026";
+// Fixed reference paths baked into the page (not editable, not stored in the shared board)
+const STATIC_PATHS = [{"id": "optimal", "name": "Optimal default", "color": "#5F6976", "order": -1, "picks": {"w1": "JAX", "w2": "LAC", "w3": "SF", "w4": "MIN", "w5": "DET", "w6": "NE", "w7": "HOU", "w8": "DAL", "w9": "SEA", "w10": "IND", "w11": "KC", "tg": "LAR", "w12": "WSH", "w13": "DEN", "w14": "CHI", "w15": "GB", "xmas": "PHI", "w16": "BAL", "w17": "BUF", "w18": "CIN"}}];
+STATIC_PATHS.forEach(sp=>{ sp.locked=true; });
 
 const impl = ml => ml < 0 ? (-ml)/((-ml)+100) : 100/(ml+100);
 const GAMES = RAW.map((r,i)=>{
@@ -239,7 +243,9 @@ const LS="circa-survivor-2026";
 
 function newId(){ return "p"+Math.random().toString(36).slice(2,8); }
 function pathList(){ return Object.values(state.paths).sort((a,b)=>(a.order||0)-(b.order||0)||a.name.localeCompare(b.name)); }
-function activePath(){ return state.paths[state.active] || pathList()[0] || null; }
+function allPaths(){ return [...STATIC_PATHS, ...pathList()]; }
+function staticById(id){ return STATIC_PATHS.find(s=>s.id===id); }
+function activePath(){ return state.paths[state.active] || staticById(state.active) || pathList()[0] || STATIC_PATHS[0] || null; }
 function colorOf(p){ return p.color || PATH_COLORS[(p.order||0)%PATH_COLORS.length]; }
 function legById(id){ return LEGS.find(l=>l.id===id); }
 
@@ -251,7 +257,7 @@ function saveLocal(){
 }
 function ensurePath(){
   if(!Object.keys(state.paths).length){ const id="p1"; state.paths[id]={id, name:"Path 1", order:0, picks:{}}; state.active=id; persistPath(state.paths[id]); }
-  if(!state.paths[state.active]) state.active=pathList()[0].id;
+  if(!state.paths[state.active] && !staticById(state.active)) state.active=pathList()[0].id;
 }
 function docOf(p){ return {name:p.name, order:p.order||0, color:p.color||null, picks:p.picks||{}, updated:Date.now()}; }
 // store: whichever shared backend is live (Firebase on a normal host, Claude's db on claude.ai), else null
@@ -294,12 +300,13 @@ function addPath(){
   const id=newId(); state.paths[id]={id,name:name.trim(),order:nextOrder(),picks:{}}; state.active=id; persistPath(state.paths[id]); render();
 }
 function renamePath(){ const p=activePath(); if(!p) return; const n=prompt("Rename path:",p.name); if(!n) return; p.name=n.trim(); persistPath(p); render(); }
-function duplicatePath(){ const p=activePath(); if(!p) return; const id=newId(); state.paths[id]={id,name:p.name+" copy",order:nextOrder(),picks:{...p.picks}}; state.active=id; persistPath(state.paths[id]); render(); }
+function duplicatePath(){ const p=activePath(); if(!p) return; const id=newId(); state.paths[id]={id,name:(p.locked?"My "+p.name:p.name+" copy"),order:nextOrder(),picks:{...p.picks}}; state.active=id; persistPath(state.paths[id]); render(); }
 function deletePath(){ const p=activePath(); if(!p) return; if(pathList().length<=1){ toast("Keep at least one path."); return; } if(!confirm("Delete \""+p.name+"\" and its picks?")) return; removePath(p.id); state.active=pathList()[0].id; saveLocal(); render(); }
 function clearPicks(){ const p=activePath(); if(!p) return; if(!confirm("Clear every pick on \""+p.name+"\"?")) return; p.picks={}; persistPath(p); render(); }
 function usedIn(p, team){ for(const [leg,t] of Object.entries(p.picks||{})) if(t===team) return leg; return null; }
 function togglePick(legId, team){
   const p=activePath(); if(!p) return;
+  if(p.locked){ toast(p.name+" is fixed. Duplicate it to make an editable copy."); return; }
   if(p.picks[legId]===team){ delete p.picks[legId]; persistPath(p); render(); return; }
   const where=usedIn(p,team);
   if(where && where!==legId){ toast(team+" is already used in "+legById(where).label+" on this path. Remove it there first."); return; }
@@ -331,7 +338,7 @@ function render(){
   document.getElementById("rules").innerHTML = '<b>How it works.</b> One team per leg, and each team can be used once per path across all 20 legs. Lines are DraftKings lines as listed on ESPN, pulled '+PULLED+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) are the preseason list from the pick sheet. Kickoffs marked TBD have not been set by the league.';
 }
 function renderPaths(){
-  document.getElementById("paths").innerHTML = pathList().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span></button>'; }).join("")
+  document.getElementById("paths").innerHTML = allPaths().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+(p.locked?" locked":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')" title="'+(p.locked?'Fixed reference path':'')+'"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span>'+(p.locked?'<span class="lock">fixed</span>':'')+'</button>'; }).join("")
     + '<button class="ptab add" onclick="addPath()">+ New path</button>';
 }
 function renderSummary(){
@@ -343,7 +350,7 @@ function renderSummary(){
    +'<div class="stat"><div class="v num">'+(s.n?(s.prod*100).toFixed(s.prod<0.01?2:1)+'%':'—')+'</div><div class="l">chance every pick so far hits</div></div>'
    +'<div class="stat"><div class="v">'+weakest+'</div><div class="l">weakest pick</div></div>'
    +'<div class="stat"><div class="v num">'+remaining+'</div><div class="l">teams still unused</div></div>'
-   +'<div class="stat actions"><button class="btn small" onclick="renamePath()">Rename</button><button class="btn small" onclick="duplicatePath()">Duplicate</button><button class="btn small" onclick="clearPicks()">Clear picks</button><button class="btn small" onclick="deletePath()">Delete</button><button class="btn small primary" onclick="copyShare()">Copy share link</button></div>';
+   +'<div class="stat actions">'+(p.locked?'<span class="l" style="flex-basis:100%">Fixed path from the lines as of '+PULLED+'. Duplicate it to edit.</span><button class="btn small" onclick="duplicatePath()">Duplicate</button>':'<button class="btn small" onclick="renamePath()">Rename</button><button class="btn small" onclick="duplicatePath()">Duplicate</button><button class="btn small" onclick="clearPicks()">Clear picks</button><button class="btn small" onclick="deletePath()">Delete</button>')+'<button class="btn small primary" onclick="copyShare()">Copy share link</button></div>';
 }
 function renderFocusBar(){
   const el=document.getElementById("focusbar");
@@ -364,7 +371,7 @@ function sortedTeams(p){
   return ts.sort((a,b)=>TIER_ORDER.indexOf(state.tiers[a]||"C")-TIER_ORDER.indexOf(state.tiers[b]||"C")||a.localeCompare(b));
 }
 function renderBoard(){
-  const p=activePath(); const others=pathList().filter(x=>x.id!==p.id);
+  const p=activePath(); const others=allPaths().filter(x=>x.id!==p.id);
   let h='<div class="wrap"><table class="board"><thead><tr><th class="team"><span class="eyebrow">Team · tier · open 65%+ spots</span></th>';
   LEGS.forEach(l=>{ const pk=p.picks[l.id]; const e=pk?TL[pk][l.id]:null;
     h+='<th class="'+l.kind+'"><span class="lg">'+l.short+'</span><span class="dt">'+l.range+'</span><span class="pk">'+(pk?'<b title="'+pk+' '+(e?pct(e.p):'')+'">'+pk+'</b>':'<span class="none">·</span>')+'</span></th>'; });
@@ -389,7 +396,7 @@ function renderBoard(){
   return h;
 }
 function renderWeeks(){
-  const p=activePath(); const others=pathList().filter(x=>x.id!==p.id);
+  const p=activePath(); const others=allPaths().filter(x=>x.id!==p.id);
   let h='<div class="weeks">';
   LEGS.forEach(l=>{
     const pk=p.picks[l.id]; const e=pk?TL[pk][l.id]:null;
