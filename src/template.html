@@ -1,0 +1,462 @@
+<meta charset="utf-8">
+<title>Circa Survivor 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#EAEDF1; --surface:#FFFFFF; --surface-2:#F4F6F8; --ink:#141920; --muted:#5F6976; --line:#D3D9E0; --line-strong:#B8C0CA;
+  --accent:#B98A12; --accent-ink:#6E5100; --pick:#FFF1C9; --pick-line:#D9A81D;
+  --good:#1F8A5B; --good-ink:#0E5C3B; --bad:#B8413A; --warn:#C27A16;
+  --tg:#7A3E9D; --xm:#B3313E;
+  --shadow:0 1px 2px rgba(20,25,32,.08),0 8px 24px -12px rgba(20,25,32,.18);
+  --font-display:"Barlow Condensed","Arial Narrow",Impact,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1317; --surface:#171C22; --surface-2:#1F252D; --ink:#E7EBF0; --muted:#8C97A5; --line:#2A323C; --line-strong:#3B4550;
+    --accent:#E3B63B; --accent-ink:#F5D97A; --pick:#3B2F0E; --pick-line:#E3B63B;
+    --good:#3DBB84; --good-ink:#8CE4BC; --bad:#E06A62; --warn:#E0A03C;
+    --tg:#B47BD6; --xm:#E4707C;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1317; --surface:#171C22; --surface-2:#1F252D; --ink:#E7EBF0; --muted:#8C97A5; --line:#2A323C; --line-strong:#3B4550;
+  --accent:#E3B63B; --accent-ink:#F5D97A; --pick:#3B2F0E; --pick-line:#E3B63B;
+  --good:#3DBB84; --good-ink:#8CE4BC; --bad:#E06A62; --warn:#E0A03C;
+  --tg:#B47BD6; --xm:#E4707C;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.08em;font-size:12px;font-weight:600;color:var(--muted)}
+
+/* header */
+.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.top-inner{display:flex;align-items:center;gap:20px;padding:12px 20px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:12px;min-width:0}
+.brand h1{font-family:var(--font-display);font-weight:700;font-size:30px;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
+.brand h1 span{color:var(--accent)}
+.brand .sub{color:var(--muted);font-size:13px;white-space:nowrap}
+.spacer{flex:1}
+.sync{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.sync.on i{background:var(--good)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);font-weight:500;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.small{padding:4px 8px;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.seg button{padding:6px 12px;font-size:13px;font-weight:500;color:var(--muted)}
+.seg button.on{background:var(--ink);color:var(--bg)}
+
+/* path tabs */
+.paths{display:flex;align-items:stretch;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
+.ptab{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:3px solid transparent;color:var(--muted);font-weight:500;white-space:nowrap}
+.ptab i{width:10px;height:10px;border-radius:2px;display:inline-block;background:var(--pc)}
+.ptab.on{color:var(--ink);border-bottom-color:var(--pc)}
+.ptab .cnt{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.ptab.add:hover{color:var(--ink)}
+
+/* summary */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.stat{background:var(--surface);padding:10px 20px}
+.stat .v{font-family:var(--font-display);font-size:26px;font-weight:600;line-height:1.05}
+.stat .l{font-size:12px;color:var(--muted)}
+.stat.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* layout */
+.main{padding:16px 20px 60px}
+.wrap{overflow:auto;max-height:calc(100vh - var(--hdr,230px) - 48px);background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow)}
+.focus-bar{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.focus-bar b{font-family:var(--font-display);font-size:16px;color:var(--ink)}
+
+/* board */
+table.board{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
+.board th,.board td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;text-align:center}
+.board thead th{position:sticky;top:0;background:var(--surface-2);z-index:5;vertical-align:bottom;padding:6px 4px 4px;min-width:44px}
+.board thead th.team{left:0;z-index:7;text-align:left;padding-left:8px}
+.board th .lg{font-family:var(--font-display);font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;display:block;line-height:1.1}
+.board th .dt{font-size:10px;color:var(--muted);display:block;font-weight:400;white-space:nowrap}
+.board th.tg .lg{color:var(--tg)} .board th.xm .lg{color:var(--xm)}
+.board th .pk{display:block;margin-top:4px;min-height:18px}
+.board th .pk b{display:inline-block;font-family:var(--font-mono);font-size:11px;padding:1px 5px;border-radius:3px;background:var(--pick);border:1px solid var(--pick-line);color:var(--ink);font-weight:500}
+.board th .pk .none{color:var(--line-strong)}
+.board td.team{position:sticky;left:0;background:var(--surface);z-index:4;text-align:left;padding:0 8px;white-space:nowrap;min-width:180px}
+.board tr:hover td.team{background:var(--surface-2)}
+.team-cell{display:flex;align-items:center;gap:8px;height:34px}
+.team-cell .ab{font-family:var(--font-display);font-weight:700;font-size:16px;width:38px;letter-spacing:.02em;text-align:left}
+.team-cell .ab:hover{color:var(--accent-ink)}
+.team-cell .nm{color:var(--muted);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis}
+.tier{font-family:var(--font-mono);font-size:10px;font-weight:500;padding:1px 5px;border-radius:3px;border:1px solid var(--line-strong);color:var(--muted);min-width:24px;text-align:center}
+.tier[data-t="S"]{border-color:var(--good);color:var(--good-ink);background:color-mix(in srgb,var(--good) 18%,transparent)}
+.tier[data-t="A"]{border-color:var(--good);color:var(--good-ink)}
+.tier[data-t="D"]{border-color:var(--bad);color:var(--bad)}
+.tier[data-t="DS"]{border-color:var(--bad);color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
+.used-tag{font-family:var(--font-mono);font-size:10px;color:var(--accent-ink);background:var(--pick);border:1px solid var(--pick-line);padding:1px 5px;border-radius:3px}
+.cell{display:block;width:100%;height:34px;line-height:34px;font-family:var(--font-mono);font-size:12px;position:relative;color:var(--ink);background:color-mix(in srgb,var(--good) calc(var(--s,0)*1%),transparent)}
+.cell:hover{outline:2px solid var(--ink);outline-offset:-2px;z-index:2}
+.cell.dog{color:var(--muted)}
+.cell.bye{color:var(--line-strong);cursor:default;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--surface-2) 6px 7px)}
+.cell.bye:hover{outline:none}
+.cell.used{color:var(--muted);text-decoration:line-through;opacity:.55}
+.cell.pick{background:var(--pick);box-shadow:inset 0 0 0 2px var(--pick-line);color:var(--ink);font-weight:500}
+.cell.pick::after{content:"";position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:var(--pick-line)}
+.cell .others{position:absolute;left:3px;bottom:3px;display:flex;gap:2px}
+.cell .others i{width:6px;height:6px;border-radius:1px;display:block}
+.cell.hol{border-top:2px solid var(--tg)}
+.cell.hol.x{border-top-color:var(--xm)}
+tr.focus td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+tr.focus td.team{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
+
+/* weeks */
+.weeks{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:14px;align-items:start}
+.leg{background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+.leg-h{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.leg-h .lg{font-family:var(--font-display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;line-height:1}
+.leg-h .dt{font-size:12px;color:var(--muted)}
+.leg-h.tg .lg{color:var(--tg)} .leg-h.xm .lg{color:var(--xm)}
+.leg-h .pickchip{margin-left:auto;display:flex;align-items:center;gap:6px}
+.pickchip b{font-family:var(--font-mono);font-size:12px;padding:2px 7px;border-radius:4px;background:var(--pick);border:1px solid var(--pick-line);font-weight:500}
+.pickchip .fav{font-size:12px;color:var(--muted)}
+.pickchip .oth{display:flex;gap:4px}
+.pickchip .oth span{font-family:var(--font-mono);font-size:10px;padding:1px 5px;border-radius:3px;border:1px solid var(--pc);color:var(--pc)}
+.games{width:100%;border-collapse:collapse}
+.games td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.games tr:last-child td{border-bottom:0}
+.games .when{font-size:11px;color:var(--muted);white-space:nowrap;width:86px}
+.games .when b{display:block;font-weight:500;color:var(--ink)}
+.games .line{font-family:var(--font-mono);font-size:11px;color:var(--muted);white-space:nowrap;text-align:right;width:96px}
+.games .line b{color:var(--ink);font-weight:500;display:block}
+.tbtn{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;border:1px solid var(--line);min-width:104px;justify-content:space-between;background:color-mix(in srgb,var(--good) calc(var(--s,0)*1%),transparent)}
+.tbtn:hover{border-color:var(--ink)}
+.tbtn .ab{font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.02em}
+.tbtn .pr{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.tbtn.dog .ab{color:var(--muted);font-weight:600}
+.tbtn.used{opacity:.45;text-decoration:line-through}
+.tbtn.pick{background:var(--pick);border-color:var(--pick-line);box-shadow:inset 0 0 0 1px var(--pick-line)}
+.tbtn.pick .pr{color:var(--accent-ink)}
+.at{color:var(--muted);font-size:11px;padding:0 4px}
+.matchup{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.hol-tag{font-family:var(--font-mono);font-size:9px;padding:1px 4px;border-radius:3px;color:var(--tg);border:1px solid var(--tg);margin-left:4px}
+.hol-tag.x{color:var(--xm);border-color:var(--xm)}
+.tier-row td{background:var(--surface-2);font-family:var(--font-display);text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--muted);padding:3px 8px}
+
+.rules{margin-top:18px;color:var(--muted);font-size:12px;max-width:80ch;line-height:1.5}
+.rules b{color:var(--ink);font-weight:500}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:90vw}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+@media (max-width:700px){.brand .sub{display:none}.weeks{grid-template-columns:1fr}.main{padding:12px 10px 60px}.top-inner,.paths{padding-left:10px;padding-right:10px}.board td.team{min-width:120px}.team-cell .nm{display:none}}
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>Circa <span>Survivor</span> 2026</h1>
+      <div class="sub">20 legs · every team once · Thanksgiving and Christmas are their own legs</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="seg" role="tablist">
+      <button id="v-board" class="on" onclick="setView('board')">Board</button>
+      <button id="v-weeks" onclick="setView('weeks')">Weeks</button>
+    </div>
+    <div class="sync" id="sync"><i></i><span>Saving on this device only</span></div>
+  </div>
+  <div class="paths" id="paths"></div>
+  <div class="summary" id="summary"></div>
+</header>
+
+<main class="main">
+  <div id="focusbar"></div>
+  <div id="view"></div>
+  <p class="rules" id="rules"></p>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+// Shared-board backend for normal web hosting. Paste the Firebase web-app config here; leave null to disable.
+const FIREBASE_CONFIG = __FIREBASE_CONFIG__;
+const BOARD_ID = "__BOARD_ID__";
+// [week, date, day, time(ET), away, home, spread(home-relative), mlAway, mlHome, total, neutral]
+const RAW = __GAMES__;
+const NAMES = __NAMES__;
+const TIER_DEFAULT = {S:["LAR","SEA"],A:["NE","DEN","BAL","PHI","DAL","LAC","BUF","JAX","HOU","SF"],B:["TB","CIN","KC","CHI","GB","DET"],C:["NO","CAR","IND","WSH","NYG","PIT","MIN"],D:["MIA","NYJ","LV"],DS:["CLE","ARI","ATL","TEN"]};
+const TIER_ORDER = ["S","A","B","C","D","DS"];
+const TEAMS = Object.keys(NAMES).sort();
+const PATH_COLORS = ["#B98A12","#2D7DD2","#2E9E6B","#C24C7A","#7A55C9","#D26D2D"];
+const PULLED = "Sep 9, 2026";
+
+const impl = ml => ml < 0 ? (-ml)/((-ml)+100) : 100/(ml+100);
+const GAMES = RAW.map((r,i)=>{
+  const pa = impl(r[7]), ph = impl(r[8]);
+  return {i, w:r[0], date:r[1], day:r[2], time:r[3], away:r[4], home:r[5], spread:r[6], mlAway:r[7], mlHome:r[8], ou:r[9], neutral:!!r[10], pAway: pa/(pa+ph), pHome: ph/(pa+ph)};
+});
+const isTG = g => g.w===12 && g.date<="2026-11-27";
+const isXM = g => g.w===16 && g.date<="2026-12-25";
+const LEGS = [];
+for (let w=1; w<=18; w++){
+  if (w===12) LEGS.push({id:"tg", label:"Thanksgiving", short:"TG", kind:"tg", note:"Wed–Fri, Nov 25–27 · picks due Wed 4 pm PT", games:GAMES.filter(isTG)});
+  if (w===16) LEGS.push({id:"xmas", label:"Christmas", short:"XM", kind:"xm", note:"Thu–Fri, Dec 24–25 · picks due Thu 4 pm PT", games:GAMES.filter(isXM)});
+  LEGS.push({id:"w"+w, label:"Week "+w, short:"W"+w, kind:"", games:GAMES.filter(g=>g.w===w && !isTG(g) && !isXM(g))});
+}
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtD = d => { const [y,m,dd]=d.split("-"); return MON[+m-1]+" "+(+dd); };
+LEGS.forEach(l=>{ const ds=l.games.map(g=>g.date).sort(); l.range = ds.length ? (ds[0]===ds[ds.length-1] ? fmtD(ds[0]) : fmtD(ds[0])+"–"+fmtD(ds[ds.length-1])) : ""; });
+const TL = {};
+TEAMS.forEach(t=>TL[t]={});
+LEGS.forEach(l=>l.games.forEach(g=>{
+  TL[g.home][l.id]={g, p:g.pHome, opp:g.away, home:true};
+  TL[g.away][l.id]={g, p:g.pAway, opp:g.home, home:false};
+}));
+
+// ---------- state ----------
+const state = { paths:{}, active:null, tiers:{}, view:"board", focus:null, sort:"tier" };
+TIER_ORDER.forEach(t=>TIER_DEFAULT[t].forEach(x=>state.tiers[x]=t));
+const LS="circa-survivor-2026";
+
+function newId(){ return "p"+Math.random().toString(36).slice(2,8); }
+function pathList(){ return Object.values(state.paths).sort((a,b)=>(a.order||0)-(b.order||0)||a.name.localeCompare(b.name)); }
+function activePath(){ return state.paths[state.active] || pathList()[0] || null; }
+function colorOf(p){ return p.color || PATH_COLORS[(p.order||0)%PATH_COLORS.length]; }
+function legById(id){ return LEGS.find(l=>l.id===id); }
+
+function loadLocal(){
+  try{ const s=JSON.parse(localStorage.getItem(LS)||"null"); if(s){ state.paths=s.paths||{}; state.active=s.active; state.view=s.view||"board"; state.sort=s.sort||"tier"; if(s.tiers) state.tiers=s.tiers; } }catch(e){}
+}
+function saveLocal(){
+  try{ localStorage.setItem(LS, JSON.stringify({paths:state.paths, active:state.active, view:state.view, sort:state.sort, tiers:state.tiers})); }catch(e){}
+}
+function ensurePath(){
+  if(!Object.keys(state.paths).length){ const id="p1"; state.paths[id]={id, name:"Path 1", order:0, picks:{}}; state.active=id; persistPath(state.paths[id]); }
+  if(!state.paths[state.active]) state.active=pathList()[0].id;
+}
+function docOf(p){ return {name:p.name, order:p.order||0, color:p.color||null, picks:p.picks||{}, updated:Date.now()}; }
+// store: whichever shared backend is live (Firebase on a normal host, Claude's db on claude.ai), else null
+let store=null;
+function persistPath(p){
+  saveLocal();
+  if(store){ store.setPath(p).catch(err=>{ toast("Could not save to the shared board ("+(err&&err.code||"error")+"). Kept on this device."); }); }
+}
+function removePath(id){ delete state.paths[id]; saveLocal(); if(store) store.delPath(id).catch(()=>{}); }
+function persistTiers(){ saveLocal(); if(store) store.setTiers().catch(()=>{}); }
+function applyRemotePaths(next){ state.paths=next; if(!state.paths[state.active]) state.active=(pathList()[0]||{}).id; saveLocal(); render(); }
+function setSync(on, text){ const sy=document.getElementById("sync"); sy.classList.toggle("on",on); sy.querySelector("span").textContent=text; }
+
+// ---------- share link (works even without the shared database) ----------
+function encodeShare(){
+  const payload = {v:1, paths:pathList().map(p=>({id:p.id,name:p.name,order:p.order||0,color:p.color||null,picks:p.picks||{}})), tiers:state.tiers};
+  return btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function decodeShare(s){ try{ s=s.replace(/-/g,"+").replace(/_/g,"/"); return JSON.parse(decodeURIComponent(escape(atob(s)))); }catch(e){ return null; } }
+function importFromHash(){
+  const m = location.hash.match(/^#s=(.+)$/); if(!m) return false;
+  const d = decodeShare(m[1]); history.replaceState(null,"",location.pathname+location.search);
+  if(!d || !d.paths) return false;
+  let n=0;
+  d.paths.forEach(p=>{ if(!p.id) return; state.paths[p.id]={id:p.id,name:p.name||"Path",order:p.order||0,color:p.color||null,picks:p.picks||{}}; persistPath(state.paths[p.id]); n++; });
+  if(d.tiers){ state.tiers=d.tiers; persistTiers(); }
+  toast("Loaded "+n+" path"+(n===1?"":"s")+" from the link");
+  return true;
+}
+async function copyShare(){
+  const url = location.origin+location.pathname+location.search+"#s="+encodeShare();
+  try{ await navigator.clipboard.writeText(url); toast("Link copied. It carries every path and pick on this board."); }
+  catch(e){ prompt("Copy this link:", url); }
+}
+
+// ---------- actions ----------
+function setView(v){ state.view=v; saveLocal(); render(); }
+function setActive(id){ state.active=id; saveLocal(); render(); }
+function nextOrder(){ return Math.max(-1,...pathList().map(p=>p.order||0))+1; }
+function addPath(){
+  const name = prompt("Name this path (a person, or a strategy like Chalk or Contrarian):", "Path "+(pathList().length+1)); if(!name) return;
+  const id=newId(); state.paths[id]={id,name:name.trim(),order:nextOrder(),picks:{}}; state.active=id; persistPath(state.paths[id]); render();
+}
+function renamePath(){ const p=activePath(); if(!p) return; const n=prompt("Rename path:",p.name); if(!n) return; p.name=n.trim(); persistPath(p); render(); }
+function duplicatePath(){ const p=activePath(); if(!p) return; const id=newId(); state.paths[id]={id,name:p.name+" copy",order:nextOrder(),picks:{...p.picks}}; state.active=id; persistPath(state.paths[id]); render(); }
+function deletePath(){ const p=activePath(); if(!p) return; if(pathList().length<=1){ toast("Keep at least one path."); return; } if(!confirm("Delete \""+p.name+"\" and its picks?")) return; removePath(p.id); state.active=pathList()[0].id; saveLocal(); render(); }
+function clearPicks(){ const p=activePath(); if(!p) return; if(!confirm("Clear every pick on \""+p.name+"\"?")) return; p.picks={}; persistPath(p); render(); }
+function usedIn(p, team){ for(const [leg,t] of Object.entries(p.picks||{})) if(t===team) return leg; return null; }
+function togglePick(legId, team){
+  const p=activePath(); if(!p) return;
+  if(p.picks[legId]===team){ delete p.picks[legId]; persistPath(p); render(); return; }
+  const where=usedIn(p,team);
+  if(where && where!==legId){ toast(team+" is already used in "+legById(where).label+" on this path. Remove it there first."); return; }
+  p.picks[legId]=team; persistPath(p); render();
+}
+function cycleTier(team){ const cur=state.tiers[team]||"C"; const i=TIER_ORDER.indexOf(cur); state.tiers[team]=TIER_ORDER[(i+1)%TIER_ORDER.length]; persistTiers(); render(); }
+function setFocus(t){ state.focus = state.focus===t ? null : t; render(); }
+function setSort(s){ state.sort=s; saveLocal(); render(); }
+
+// ---------- derived ----------
+function pathStats(p){
+  const picks=p.picks||{}; let n=0, prod=1, weakest=null;
+  LEGS.forEach(l=>{ const t=picks[l.id]; if(!t) return; const e=TL[t][l.id]; if(!e) return; n++; prod*=e.p; if(!weakest||e.p<weakest.p) weakest={leg:l,team:t,p:e.p}; });
+  return {n, prod, weakest};
+}
+function strongSpots(team, p){ let n=0; LEGS.forEach(l=>{ if(p.picks[l.id]) return; const e=TL[team][l.id]; if(e && e.p>=0.65) n++; }); return n; }
+const pct = x => Math.round(x*100)+"%";
+const fmtML = ml => ml>0 ? "+"+ml : String(ml);
+const strength = p => Math.max(0, Math.min(78, (p-0.5)/0.4*78));
+const shortName = t => NAMES[t].replace(/^(Los Angeles|New York|New England|San Francisco|Tampa Bay|Kansas City|Green Bay|Las Vegas|New Orleans) /,"");
+
+// ---------- render ----------
+function render(){
+  ensurePath();
+  renderPaths(); renderSummary(); renderFocusBar();
+  document.getElementById("v-board").classList.toggle("on", state.view==="board");
+  document.getElementById("v-weeks").classList.toggle("on", state.view==="weeks");
+  document.getElementById("view").innerHTML = state.view==="board" ? renderBoard() : renderWeeks();
+  document.documentElement.style.setProperty("--hdr", document.querySelector(".top").offsetHeight+"px");
+  document.getElementById("rules").innerHTML = '<b>How it works.</b> One team per leg, and each team can be used once per path across all 20 legs. Lines are DraftKings lines as listed on ESPN, pulled '+PULLED+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) start from the preseason list in the sheet and change when you click a tier tag. Kickoffs marked TBD have not been set by the league.';
+}
+function renderPaths(){
+  document.getElementById("paths").innerHTML = pathList().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span></button>'; }).join("")
+    + '<button class="ptab add" onclick="addPath()">+ New path</button>';
+}
+function renderSummary(){
+  const p=activePath(); const s=pathStats(p);
+  const remaining = TEAMS.filter(t=>!usedIn(p,t)).length;
+  const weakest = s.weakest ? s.weakest.team+' '+pct(s.weakest.p)+' <span style="font-size:14px;color:var(--muted)">'+s.weakest.leg.label+'</span>' : '—';
+  document.getElementById("summary").innerHTML =
+    '<div class="stat"><div class="v num">'+s.n+'<span style="font-size:16px;color:var(--muted)"> / 20</span></div><div class="l">legs picked on '+esc(p.name)+'</div></div>'
+   +'<div class="stat"><div class="v num">'+(s.n?(s.prod*100).toFixed(s.prod<0.01?2:1)+'%':'—')+'</div><div class="l">chance every pick so far hits</div></div>'
+   +'<div class="stat"><div class="v">'+weakest+'</div><div class="l">weakest pick</div></div>'
+   +'<div class="stat"><div class="v num">'+remaining+'</div><div class="l">teams still unused</div></div>'
+   +'<div class="stat actions"><button class="btn small" onclick="renamePath()">Rename</button><button class="btn small" onclick="duplicatePath()">Duplicate</button><button class="btn small" onclick="clearPicks()">Clear picks</button><button class="btn small" onclick="deletePath()">Delete</button><button class="btn small primary" onclick="copyShare()">Copy share link</button></div>';
+}
+function renderFocusBar(){
+  const el=document.getElementById("focusbar");
+  if(!state.focus){
+    el.innerHTML = state.view==="board"
+      ? '<div class="focus-bar">Click a team to spotlight its whole season. Click a cell to pick that team for that leg. <span class="spacer"></span>Sort teams: <span class="seg"><button class="'+(state.sort==="tier"?"on":"")+'" onclick="setSort(\'tier\')">Tier</button><button class="'+(state.sort==="name"?"on":"")+'" onclick="setSort(\'name\')">A–Z</button><button class="'+(state.sort==="spots"?"on":"")+'" onclick="setSort(\'spots\')">Open 65%+ spots</button></span></div>'
+      : '<div class="focus-bar">Games sorted by the favorite\'s win chance. Click a team to pick it for that leg; click again to remove.</div>';
+    return;
+  }
+  const t=state.focus; const p=activePath();
+  const spots = LEGS.map(l=>{ const e=TL[t][l.id]; return e ? {l,e} : null; }).filter(Boolean).sort((a,b)=>b.e.p-a.e.p).slice(0,6);
+  el.innerHTML = '<div class="focus-bar"><b>'+t+' · '+esc(NAMES[t])+'</b> best spots: '+spots.map(s=>'<span class="num">'+s.l.short+' '+pct(s.e.p)+' '+(s.e.home?'vs':'@')+' '+s.e.opp+'</span>').join(' · ')+(usedIn(p,t)?' · <span class="used-tag">used '+legById(usedIn(p,t)).short+'</span>':'')+' <button class="btn small" onclick="setFocus(null)">Clear</button></div>';
+}
+function sortedTeams(p){
+  const ts=[...TEAMS];
+  if(state.sort==="name") return ts;
+  if(state.sort==="spots") return ts.sort((a,b)=>strongSpots(b,p)-strongSpots(a,p)||a.localeCompare(b));
+  return ts.sort((a,b)=>TIER_ORDER.indexOf(state.tiers[a]||"C")-TIER_ORDER.indexOf(state.tiers[b]||"C")||a.localeCompare(b));
+}
+function renderBoard(){
+  const p=activePath(); const others=pathList().filter(x=>x.id!==p.id);
+  let h='<div class="wrap"><table class="board"><thead><tr><th class="team"><span class="eyebrow">Team · tier · open 65%+ spots</span></th>';
+  LEGS.forEach(l=>{ const pk=p.picks[l.id]; const e=pk?TL[pk][l.id]:null;
+    h+='<th class="'+l.kind+'"><span class="lg">'+l.short+'</span><span class="dt">'+l.range+'</span><span class="pk">'+(pk?'<b title="'+pk+' '+(e?pct(e.p):'')+'">'+pk+'</b>':'<span class="none">·</span>')+'</span></th>'; });
+  h+='</tr></thead><tbody>';
+  sortedTeams(p).forEach(t=>{
+    const used=usedIn(p,t); const tier=state.tiers[t]||"C";
+    h+='<tr class="'+(state.focus===t?"focus":"")+'"><td class="team"><div class="team-cell"><button class="ab" onclick="setFocus(\''+t+'\')" title="'+esc(NAMES[t])+'">'+t+'</button><button class="tier" data-t="'+tier+'" onclick="cycleTier(\''+t+'\')" title="Click to change tier">'+tier+'</button><span class="nm">'+esc(shortName(t))+'</span>'+(used?'<span class="used-tag">'+legById(used).short+'</span>':'<span class="num" style="font-size:11px;color:var(--muted)">'+strongSpots(t,p)+'</span>')+'</div></td>';
+    LEGS.forEach(l=>{
+      const e=TL[t][l.id];
+      if(!e){ h+='<td><span class="cell bye">bye</span></td>'; return; }
+      const isPick=p.picks[l.id]===t; const isUsed=used&&used!==l.id;
+      const oth=others.filter(o=>o.picks&&o.picks[l.id]===t);
+      const cls='cell'+(e.p<0.5?' dog':'')+(isPick?' pick':'')+(isUsed?' used':'')+(l.kind?' hol'+(l.kind==='xm'?' x':''):'');
+      h+='<td><button class="'+cls+'" style="--s:'+strength(e.p).toFixed(0)+'" onclick="togglePick(\''+l.id+'\',\''+t+'\')" title="'+t+' '+(e.home?'vs':'@')+' '+e.opp+' · '+e.g.day+' '+e.g.time+' · '+(e.home?fmtML(e.g.mlHome):fmtML(e.g.mlAway))+' · '+pct(e.p)+'">'+Math.round(e.p*100)+(oth.length?'<span class="others">'+oth.map(o=>'<i style="background:'+colorOf(o)+'" title="'+esc(o.name)+'"></i>').join('')+'</span>':'')+'</button></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="rules" style="margin-top:10px">Each cell is that team\'s win chance for the leg; darker green is a heavier favorite, grey means underdog, striped is a bye. A gold cell is '+esc(p.name)+'\'s pick; small colored squares are other paths\' picks. Purple and red top edges mark Thanksgiving and Christmas games.</div>';
+  return h;
+}
+function renderWeeks(){
+  const p=activePath(); const others=pathList().filter(x=>x.id!==p.id);
+  let h='<div class="weeks">';
+  LEGS.forEach(l=>{
+    const pk=p.picks[l.id]; const e=pk?TL[pk][l.id]:null;
+    const games=[...l.games].sort((a,b)=>Math.max(b.pHome,b.pAway)-Math.max(a.pHome,a.pAway));
+    h+='<section class="leg"><div class="leg-h '+l.kind+'"><div><div class="lg">'+l.label+'</div><div class="dt">'+l.range+(l.note?' · '+l.note:'')+'</div></div><div class="pickchip">'+(pk?'<b>'+pk+' '+pct(e.p)+'</b>':'<span class="fav">no pick</span>')+(others.length?'<span class="oth">'+others.filter(o=>o.picks&&o.picks[l.id]).map(o=>'<span style="--pc:'+colorOf(o)+'" title="'+esc(o.name)+'">'+o.picks[l.id]+'</span>').join('')+'</span>':'')+'</div></div>';
+    h+='<table class="games">';
+    let lastTier=null;
+    games.forEach(g=>{
+      const fp=Math.max(g.pHome,g.pAway);
+      const tier = fp>=0.68?"Tier 1 · 68%+" : fp>=0.58?"Tier 2 · 58–67%" : "Tier 3 · coin flips";
+      if(tier!==lastTier){ h+='<tr class="tier-row"><td colspan="3">'+tier+'</td></tr>'; lastTier=tier; }
+      const favIsHome=g.pHome>=g.pAway;
+      const spreadTxt = g.spread==null?'PK':(favIsHome?g.home:g.away)+' '+(g.spread<0?g.spread:-g.spread);
+      const hol = isTG(g)?'<span class="hol-tag">TG</span>':(isXM(g)?'<span class="hol-tag x">XMAS</span>':'');
+      h+='<tr><td class="when"><b>'+g.day+' '+fmtD(g.date)+'</b>'+g.time+(g.neutral?' · neutral':'')+'</td><td><div class="matchup">'+teamBtn(l,g.away,g.pAway,g.mlAway,p)+'<span class="at">'+(g.neutral?'vs':'@')+'</span>'+teamBtn(l,g.home,g.pHome,g.mlHome,p)+hol+'</div></td><td class="line"><b>'+spreadTxt+'</b>O/U '+(g.ou==null?'—':g.ou)+'</td></tr>';
+    });
+    h+='</table></section>';
+  });
+  return h+'</div>';
+}
+function teamBtn(l,t,pr,ml,p){
+  const used=usedIn(p,t); const isPick=p.picks[l.id]===t; const isUsed=used&&used!==l.id;
+  return '<button class="tbtn'+(pr<0.5?' dog':'')+(isPick?' pick':'')+(isUsed?' used':'')+'" style="--s:'+strength(pr).toFixed(0)+'" onclick="togglePick(\''+l.id+'\',\''+t+'\')" title="'+esc(NAMES[t])+(isUsed?' · used in '+legById(used).label:'')+'"><span class="ab">'+t+'</span><span class="pr">'+fmtML(ml)+' · '+pct(pr)+'</span></button>';
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+let toastT; function toast(m){ const el=document.getElementById("toast"); el.textContent=m; el.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),2800); }
+
+// ---------- boot ----------
+loadLocal();
+importFromHash();
+render();
+
+function normPath(id,x){ return {id, name:x.name||"Path", order:x.order||0, color:x.color||null, picks:x.picks||{}}; }
+
+// Backend 1: Firebase Realtime Database (used when the page is hosted on a normal website)
+function bootFirebase(){
+  if(!FIREBASE_CONFIG || !window.firebase) return false;
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const root = firebase.database().ref("boards/"+BOARD_ID);
+    store = {
+      setPath: p => root.child("paths/"+p.id).set(docOf(p)),
+      delPath: id => root.child("paths/"+id).remove(),
+      setTiers: () => root.child("shared/tiers").set({tiers:state.tiers, updated:Date.now()})
+    };
+    const pending = {...state.paths}; let first=true;
+    root.child("paths").on("value", snap=>{
+      const v = snap.val()||{}; const next={};
+      Object.keys(v).forEach(id=>next[id]=normPath(id,v[id]||{}));
+      if(first){ first=false; if(!Object.keys(next).length && Object.keys(pending).length){ Object.values(pending).forEach(p=>store.setPath(p).catch(()=>{})); return; } }
+      if(Object.keys(next).length) applyRemotePaths(next);
+    }, err=>{ toast("Shared board unavailable ("+(err&&err.code||"error")+"). Changes stay on this device."); store=null; setSync(false,"Saving on this device only"); });
+    root.child("shared/tiers").on("value", snap=>{ const v=snap.val(); if(v && v.tiers){ state.tiers=v.tiers; saveLocal(); render(); } });
+    firebase.database().ref(".info/connected").on("value", s=>{ setSync(!!s.val(), s.val() ? "Shared board · live" : "Reconnecting to shared board…"); });
+    return true;
+  }catch(e){ return false; }
+}
+
+// Backend 2: Claude's artifact database (used when the page is opened from its claude.ai link)
+async function bootClaudeDb(){
+  try{
+    const db = (window.claude && window.claude.use) ? await window.claude.use("db") : null;
+    if(!db) return;
+    store = {
+      setPath: p => db.doc("paths/"+p.id).set(docOf(p)),
+      delPath: id => db.doc("paths/"+id).delete(),
+      setTiers: () => db.doc("shared/tiers").set({tiers:state.tiers, updated:Date.now()})
+    };
+    setSync(true,"Shared board · live");
+    const pending = {...state.paths}; let seeded=false;
+    db.collection("paths").onSnapshot(snap=>{
+      const next={};
+      snap.docs.forEach(doc=>{ if(doc.exists) next[doc.id]=normPath(doc.id,doc.data()); });
+      if(snap.metadata.fromCache && !snap.size) return;
+      if(!snap.size){ if(!seeded && Object.keys(pending).length){ seeded=true; Object.values(pending).forEach(p=>store&&store.setPath(p).catch(()=>{})); } return; }
+      applyRemotePaths(next);
+    }, err=>{ toast("Shared board disconnected ("+err.code+"). Changes stay on this device."); setSync(false,"Saving on this device only"); store=null; });
+    db.doc("shared/tiers").onSnapshot(snap=>{ if(snap.exists && snap.data().tiers){ state.tiers=snap.data().tiers; saveLocal(); render(); } }, ()=>{});
+  }catch(e){ /* stay local */ }
+}
+
+if(!bootFirebase()) bootClaudeDb();
+</script>
