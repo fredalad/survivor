@@ -230,10 +230,10 @@ function colorOf(p){ return p.color || PATH_COLORS[(p.order||0)%PATH_COLORS.leng
 function legById(id){ return LEGS.find(l=>l.id===id); }
 
 function loadLocal(){
-  try{ const s=JSON.parse(localStorage.getItem(LS)||"null"); if(s){ state.paths=s.paths||{}; state.active=s.active; state.view=s.view||"board"; state.sort=s.sort||"tier"; if(s.tiers) state.tiers=s.tiers; } }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem(LS)||"null"); if(s){ state.paths=s.paths||{}; state.active=s.active; state.view=s.view||"board"; state.sort=s.sort||"tier"; } }catch(e){}
 }
 function saveLocal(){
-  try{ localStorage.setItem(LS, JSON.stringify({paths:state.paths, active:state.active, view:state.view, sort:state.sort, tiers:state.tiers})); }catch(e){}
+  try{ localStorage.setItem(LS, JSON.stringify({paths:state.paths, active:state.active, view:state.view, sort:state.sort})); }catch(e){}
 }
 function ensurePath(){
   if(!Object.keys(state.paths).length){ const id="p1"; state.paths[id]={id, name:"Path 1", order:0, picks:{}}; state.active=id; persistPath(state.paths[id]); }
@@ -247,13 +247,12 @@ function persistPath(p){
   if(store){ store.setPath(p).catch(err=>{ toast("Could not save to the shared board ("+(err&&err.code||"error")+"). Kept on this device."); }); }
 }
 function removePath(id){ delete state.paths[id]; saveLocal(); if(store) store.delPath(id).catch(()=>{}); }
-function persistTiers(){ saveLocal(); if(store) store.setTiers().catch(()=>{}); }
 function applyRemotePaths(next){ state.paths=next; if(!state.paths[state.active]) state.active=(pathList()[0]||{}).id; saveLocal(); render(); }
 function setSync(on, text){ const sy=document.getElementById("sync"); sy.classList.toggle("on",on); sy.querySelector("span").textContent=text; }
 
 // ---------- share link (works even without the shared database) ----------
 function encodeShare(){
-  const payload = {v:1, paths:pathList().map(p=>({id:p.id,name:p.name,order:p.order||0,color:p.color||null,picks:p.picks||{}})), tiers:state.tiers};
+  const payload = {v:1, paths:pathList().map(p=>({id:p.id,name:p.name,order:p.order||0,color:p.color||null,picks:p.picks||{}}))};
   return btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
 function decodeShare(s){ try{ s=s.replace(/-/g,"+").replace(/_/g,"/"); return JSON.parse(decodeURIComponent(escape(atob(s)))); }catch(e){ return null; } }
@@ -263,7 +262,6 @@ function importFromHash(){
   if(!d || !d.paths) return false;
   let n=0;
   d.paths.forEach(p=>{ if(!p.id) return; state.paths[p.id]={id:p.id,name:p.name||"Path",order:p.order||0,color:p.color||null,picks:p.picks||{}}; persistPath(state.paths[p.id]); n++; });
-  if(d.tiers){ state.tiers=d.tiers; persistTiers(); }
   toast("Loaded "+n+" path"+(n===1?"":"s")+" from the link");
   return true;
 }
@@ -293,7 +291,6 @@ function togglePick(legId, team){
   if(where && where!==legId){ toast(team+" is already used in "+legById(where).label+" on this path. Remove it there first."); return; }
   p.picks[legId]=team; persistPath(p); render();
 }
-function cycleTier(team){ const cur=state.tiers[team]||"C"; const i=TIER_ORDER.indexOf(cur); state.tiers[team]=TIER_ORDER[(i+1)%TIER_ORDER.length]; persistTiers(); render(); }
 function setFocus(t){ state.focus = state.focus===t ? null : t; render(); }
 function setSort(s){ state.sort=s; saveLocal(); render(); }
 
@@ -317,7 +314,7 @@ function render(){
   document.getElementById("v-weeks").classList.toggle("on", state.view==="weeks");
   document.getElementById("view").innerHTML = state.view==="board" ? renderBoard() : renderWeeks();
   document.documentElement.style.setProperty("--hdr", document.querySelector(".top").offsetHeight+"px");
-  document.getElementById("rules").innerHTML = '<b>How it works.</b> One team per leg, and each team can be used once per path across all 20 legs. Lines are DraftKings lines as listed on ESPN, pulled '+PULLED+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) start from the preseason list in the sheet and change when you click a tier tag. Kickoffs marked TBD have not been set by the league.';
+  document.getElementById("rules").innerHTML = '<b>How it works.</b> One team per leg, and each team can be used once per path across all 20 legs. Lines are DraftKings lines as listed on ESPN, pulled '+PULLED+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) are the preseason list from the pick sheet. Kickoffs marked TBD have not been set by the league.';
 }
 function renderPaths(){
   document.getElementById("paths").innerHTML = pathList().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span></button>'; }).join("")
@@ -360,7 +357,7 @@ function renderBoard(){
   h+='</tr></thead><tbody>';
   sortedTeams(p).forEach(t=>{
     const used=usedIn(p,t); const tier=state.tiers[t]||"C";
-    h+='<tr class="'+(state.focus===t?"focus":"")+'"><td class="team"><div class="team-cell"><button class="ab" onclick="setFocus(\''+t+'\')" title="'+esc(NAMES[t])+'">'+t+'</button><button class="tier" data-t="'+tier+'" onclick="cycleTier(\''+t+'\')" title="Click to change tier">'+tier+'</button><span class="nm">'+esc(shortName(t))+'</span>'+(used?'<span class="used-tag">'+legById(used).short+'</span>':'<span class="num" style="font-size:11px;color:var(--muted)">'+strongSpots(t,p)+'</span>')+'</div></td>';
+    h+='<tr class="'+(state.focus===t?"focus":"")+'"><td class="team"><div class="team-cell"><button class="ab" onclick="setFocus(\''+t+'\')" title="'+esc(NAMES[t])+'">'+t+'</button><span class="tier" data-t="'+tier+'" title="Preseason tier">'+tier+'</span><span class="nm">'+esc(shortName(t))+'</span>'+(used?'<span class="used-tag">'+legById(used).short+'</span>':'<span class="num" style="font-size:11px;color:var(--muted)">'+strongSpots(t,p)+'</span>')+'</div></td>';
     LEGS.forEach(l=>{
       const e=TL[t][l.id];
       if(!e){ h+='<td><span class="cell bye">bye</span></td>'; return; }
@@ -419,8 +416,7 @@ function bootFirebase(){
     const root = firebase.database().ref("boards/"+BOARD_ID);
     store = {
       setPath: p => root.child("paths/"+p.id).set(docOf(p)),
-      delPath: id => root.child("paths/"+id).remove(),
-      setTiers: () => root.child("shared/tiers").set({tiers:state.tiers, updated:Date.now()})
+      delPath: id => root.child("paths/"+id).remove()
     };
     const pending = {...state.paths}; let first=true;
     root.child("paths").on("value", snap=>{
@@ -429,7 +425,6 @@ function bootFirebase(){
       if(first){ first=false; if(!Object.keys(next).length && Object.keys(pending).length){ Object.values(pending).forEach(p=>store.setPath(p).catch(()=>{})); return; } }
       if(Object.keys(next).length) applyRemotePaths(next);
     }, err=>{ toast("Shared board unavailable ("+(err&&err.code||"error")+"). Changes stay on this device."); store=null; setSync(false,"Saving on this device only"); });
-    root.child("shared/tiers").on("value", snap=>{ const v=snap.val(); if(v && v.tiers){ state.tiers=v.tiers; saveLocal(); render(); } });
     firebase.database().ref(".info/connected").on("value", s=>{ setSync(!!s.val(), s.val() ? "Shared board · live" : "Reconnecting to shared board…"); });
     return true;
   }catch(e){ return false; }
@@ -442,8 +437,7 @@ async function bootClaudeDb(){
     if(!db) return;
     store = {
       setPath: p => db.doc("paths/"+p.id).set(docOf(p)),
-      delPath: id => db.doc("paths/"+id).delete(),
-      setTiers: () => db.doc("shared/tiers").set({tiers:state.tiers, updated:Date.now()})
+      delPath: id => db.doc("paths/"+id).delete()
     };
     setSync(true,"Shared board · live");
     const pending = {...state.paths}; let seeded=false;
@@ -454,7 +448,6 @@ async function bootClaudeDb(){
       if(!snap.size){ if(!seeded && Object.keys(pending).length){ seeded=true; Object.values(pending).forEach(p=>store&&store.setPath(p).catch(()=>{})); } return; }
       applyRemotePaths(next);
     }, err=>{ toast("Shared board disconnected ("+err.code+"). Changes stay on this device."); setSync(false,"Saving on this device only"); store=null; });
-    db.doc("shared/tiers").onSnapshot(snap=>{ if(snap.exists && snap.data().tiers){ state.tiers=snap.data().tiers; saveLocal(); render(); } }, ()=>{});
   }catch(e){ /* stay local */ }
 }
 
