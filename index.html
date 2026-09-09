@@ -104,6 +104,12 @@ table.board{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .cell:hover{outline:2px solid var(--ink);outline-offset:-2px;z-index:2}
 .cell.dog{color:var(--muted)}
 .cell.bye{color:var(--line-strong);cursor:default;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--surface-2) 6px 7px)}
+.cell.x2{height:50px;line-height:1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;font-weight:500}
+.cell.x2 .opp{font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--ink);white-space:nowrap}
+.cell.x2.dog .opp{color:var(--muted)}
+.cell.x2.used{text-decoration:none}
+.cell.x2.used .opp{opacity:.7}
+tr.focus td.team .team-cell{height:50px}
 .cell.bye:hover{outline:none}
 .cell.used{color:var(--muted);text-decoration:line-through;opacity:.55}
 .cell.pick{background:var(--pick);box-shadow:inset 0 0 0 2px var(--pick-line);color:var(--ink);font-weight:500}
@@ -366,18 +372,20 @@ function renderBoard(){
   sortedTeams(p).forEach(t=>{
     const used=usedIn(p,t); const tier=state.tiers[t]||"C";
     h+='<tr class="'+(state.focus===t?"focus":"")+'"><td class="team"><div class="team-cell"><button class="ab" onclick="setFocus(\''+t+'\')" title="'+esc(NAMES[t])+'">'+t+'</button><span class="tier" data-t="'+tier+'" title="Preseason tier">'+tier+'</span><span class="nm">'+esc(shortName(t))+'</span>'+(used?'<span class="used-tag">'+legById(used).short+'</span>':'<span class="num" style="font-size:11px;color:var(--muted)">'+strongSpots(t,p)+'</span>')+'</div></td>';
+    const focused = state.focus===t;
     LEGS.forEach(l=>{
       const e=TL[t][l.id];
-      if(!e){ h+='<td><span class="cell bye">bye</span></td>'; return; }
+      if(!e){ h+='<td><span class="cell bye'+(focused?' x2':'')+'">bye</span></td>'; return; }
       const isPick=p.picks[l.id]===t; const isUsed=used&&used!==l.id;
       const oth=others.filter(o=>o.picks&&o.picks[l.id]===t);
-      const cls='cell'+(e.p<0.5?' dog':'')+(isPick?' pick':'')+(isUsed?' used':'')+(l.kind?' hol'+(l.kind==='xm'?' x':''):'');
-      h+='<td><button class="'+cls+'" style="--s:'+strength(e.p).toFixed(0)+'" onclick="togglePick(\''+l.id+'\',\''+t+'\')" title="'+t+' '+(e.home?'vs':'@')+' '+e.opp+' · '+e.g.day+' '+e.g.time+' · '+(e.home?fmtML(e.g.mlHome):fmtML(e.g.mlAway))+' · '+pct(e.p)+'">'+Math.round(e.p*100)+(oth.length?'<span class="others">'+oth.map(o=>'<i style="background:'+colorOf(o)+'" title="'+esc(o.name)+'"></i>').join('')+'</span>':'')+'</button></td>';
+      const cls='cell'+(focused?' x2':'')+(e.p<0.5?' dog':'')+(isPick?' pick':'')+(isUsed?' used':'')+(l.kind?' hol'+(l.kind==='xm'?' x':''):'');
+      const oppLine = focused ? '<span class="opp">'+(e.home?'vs ':'@ ')+e.opp+(e.g.neutral?'*':'')+'</span>' : '';
+      h+='<td><button class="'+cls+'" style="--s:'+strength(e.p).toFixed(0)+'" onclick="togglePick(\''+l.id+'\',\''+t+'\')" title="'+t+' '+(e.home?'vs':'@')+' '+e.opp+' · '+e.g.day+' '+e.g.time+' · '+(e.home?fmtML(e.g.mlHome):fmtML(e.g.mlAway))+' · '+pct(e.p)+'">'+oppLine+'<span>'+Math.round(e.p*100)+'</span>'+(oth.length?'<span class="others">'+oth.map(o=>'<i style="background:'+colorOf(o)+'" title="'+esc(o.name)+'"></i>').join('')+'</span>':'')+'</button></td>';
     });
     h+='</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div class="rules" style="margin-top:10px">Each cell is that team\'s win chance for the leg; darker green is a heavier favorite, grey means underdog, striped is a bye. A gold cell is '+esc(p.name)+'\'s pick; small colored squares are other paths\' picks. Purple and red top edges mark Thanksgiving and Christmas games.</div>';
+  h+='<div class="rules" style="margin-top:10px">Each cell is that team\'s win chance for the leg; darker green is a heavier favorite, grey means underdog, striped is a bye. A gold cell is '+esc(p.name)+'\'s pick; small colored squares are other paths\' picks. Purple and red top edges mark Thanksgiving and Christmas games. Click a team to see its opponent in every leg; * marks a neutral-site game.</div>';
   return h;
 }
 function renderWeeks(){
