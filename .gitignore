@@ -1,2 +1,9 @@
 .claude/
 __pycache__/
+functions/node_modules/
+functions/.env
+functions/*.log
+*.log
+service-account*.json
+odds.json
+.firebase/

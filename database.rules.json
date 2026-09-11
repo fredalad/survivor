@@ -1,0 +1,73 @@
+{
+  "rules": {
+    "odds": {
+      ".read": true,
+      ".write": false
+    },
+    "purchases": {
+      ".read": false,
+      ".write": false
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        "email": {
+          ".write": "auth != null && auth.uid == $uid"
+        },
+        "boards": {
+          ".read": "auth != null && root.child('users/' + $uid + '/team/' + auth.uid).exists()",
+          "$b": {
+            ".write": "auth != null && auth.uid == $uid && root.child('boards/' + $b + '/meta/owner').val() == $uid"
+          }
+        },
+        "team": {
+          ".read": "auth != null && root.child('users/' + $uid + '/team/' + auth.uid).exists()",
+          "$m": {
+            ".write": "auth != null && ((auth.uid == $m && !data.exists() && newData.exists() && auth.token.email != null && root.child('users/' + $uid + '/invites/' + auth.token.email.toLowerCase().replace('.', ',')).exists()) || (auth.uid == $uid && $m != auth.uid && !newData.exists()))",
+            ".validate": "!newData.exists() || newData.hasChildren(['joined'])"
+          }
+        },
+        "invites": {
+          "$e": {
+            ".read": "auth != null && auth.token.email != null && $e == auth.token.email.toLowerCase().replace('.', ',')",
+            ".write": "auth != null && !newData.exists() && (auth.uid == $uid || (auth.token.email != null && $e == auth.token.email.toLowerCase().replace('.', ',')))"
+          }
+        },
+        "memberOf": {
+          "$o": {
+            ".write": "auth != null && auth.uid == $uid && root.child('users/' + $o + '/team/' + $uid).exists()"
+          }
+        },
+        "slots": {
+          ".read": "auth != null && (auth.uid == $uid || root.child('users/' + $uid + '/team/' + auth.uid).exists())",
+          ".write": false
+        },
+        "seats": {
+          ".write": false
+        }
+      }
+    },
+    "boards": {
+      "FcNiUIfqtOT6tBjo": {
+        ".read": true,
+        ".write": true
+      },
+      "$b": {
+        "meta": {
+          ".read": "auth != null && (root.child('boards/' + $b + '/meta/owner').val() == auth.uid || root.child('users/' + root.child('boards/' + $b + '/meta/owner').val() + '/team/' + auth.uid).exists())",
+          "name": {
+            ".write": "auth != null && root.child('boards/' + $b + '/meta/owner').val() == auth.uid",
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+          }
+        },
+        "paths": {
+          ".read": "auth != null && (root.child('boards/' + $b + '/meta/owner').val() == auth.uid || root.child('users/' + root.child('boards/' + $b + '/meta/owner').val() + '/team/' + auth.uid).exists())",
+          "$p": {
+            ".write": "auth != null && (root.child('boards/' + $b + '/meta/owner').val() == auth.uid || root.child('users/' + root.child('boards/' + $b + '/meta/owner').val() + '/team/' + auth.uid).exists()) && (!newData.exists() || root.child('users/' + root.child('boards/' + $b + '/meta/owner').val() + '/slots/' + $p).exists())",
+            ".validate": "newData.hasChildren(['name'])"
+          }
+        }
+      }
+    }
+  }
+}

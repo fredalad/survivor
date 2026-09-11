@@ -1,0 +1,81 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Survivor Sheets · FAQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#EAEDF1;--surface:#fff;--ink:#141920;--muted:#5F6976;--line:#D3D9E0;--accent:#B98A12;--accent-ink:#6E5100;--pick:#FFF1C9;--pick-line:#D9A81D}
+@media (prefers-color-scheme: dark){:root{--bg:#0F1317;--surface:#171C22;--ink:#E7EBF0;--muted:#8C97A5;--line:#2A323C;--accent:#E3B63B;--accent-ink:#F5D97A;--pick:#3B2F0E;--pick-line:#E3B63B}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "IBM Plex Sans",system-ui,sans-serif}
+main{max-width:76ch;margin:32px auto;padding:28px 32px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;text-transform:uppercase;font-size:34px;margin:0 0 4px;line-height:1}
+h1 span{color:var(--accent)}
+h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.04em;font-size:22px;margin:30px 0 8px;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:6px}
+details{border-bottom:1px solid var(--line);padding:10px 0}
+details:last-of-type{border-bottom:0}
+summary{cursor:pointer;font-weight:600;list-style:none;display:flex;gap:10px;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";font-family:"Barlow Condensed",sans-serif;font-size:20px;color:var(--accent);width:14px;flex:none;line-height:1}
+details[open] summary::before{content:"–"}
+details p,details ul{margin:8px 0 4px 24px;color:var(--ink)}
+details li{margin:3px 0}
+.muted{color:var(--muted);font-size:13px}
+a{color:inherit}
+.chip{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:12px;padding:1px 6px;border-radius:3px;background:var(--pick);border:1px solid var(--pick-line)}
+.nav{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 0}
+.nav a{font-size:13px;color:var(--muted)}
+.cta{margin:26px 0 0;padding:14px 16px;background:var(--pick);border:1px solid var(--pick-line);border-radius:8px}
+.cta a.btn{display:inline-block;margin-top:6px;padding:7px 12px;border-radius:6px;background:var(--ink);color:var(--bg);text-decoration:none;font-weight:500;font-size:13px}
+</style>
+<main>
+<h1>Survivor Sheets <span>FAQ</span></h1>
+<p class="muted">Straight answers about the planner, the numbers on it, and what you're paying for.</p>
+<div class="nav"><a href="#what">What it is</a><a href="#numbers">The numbers</a><a href="#using">Using it</a><a href="#sharing">Sharing</a><a href="#buying">Buying</a><a href="#account">Account</a></div>
+
+<h2 id="what">What it is</h2>
+<details open><summary>What is a sheet?</summary><p>One complete plan for a survivor entry: a team for each of the 20 legs, with every team used at most once. If you're playing two entries in the contest, you'd want two sheets so you can plan them side by side without doubling up on teams in the wrong places.</p></details>
+<details><summary>Is this the Circa Survivor contest?</summary><p>No. Survivor Sheets is an independent planning tool built around the Circa Survivor rules: 20 legs, every team once, Thanksgiving and Christmas as their own legs, ties count as losses. You still submit your real picks at Circa. We don't take entries, hold money, or have any connection to Circa Sports.</p></details>
+<details><summary>Does it submit my picks for me?</summary><p>No. It helps you decide. Submitting is always done with the contest itself, by the contest's deadline.</p></details>
+<details><summary>What's the "Optimal default" sheet?</summary><p>A full 20-leg plan solved from the season-opening lines, picking the combination that maximised the chance of surviving all 20 legs under the one-team-once rule. It's fixed, so you can always compare against it. Click <b>Duplicate</b> to make your own editable copy of it.</p></details>
+
+<h2 id="numbers">The numbers</h2>
+<details><summary>Where do the odds come from?</summary><p>DraftKings lines as published on ESPN. They refresh every 10 minutes all week, so what you see is what the market thinks right now, not what it thought in August. The header shows when the lines last updated.</p></details>
+<details><summary>What does the percentage in each cell mean?</summary><p>That team's chance of winning that game, worked out from the moneyline with the sportsbook's margin removed. Darker green means a heavier favorite, grey means underdog, striped means bye week.</p></details>
+<details><summary>Why did a number just flash?</summary><p>The lines refreshed and that team's win chance moved. It's a nudge to check whether a pick you'd planned still looks as good.</p></details>
+<details><summary>What happens to future weeks the books haven't priced yet?</summary><p>Sportsbooks post lines for the current week and usually one ahead. Later weeks show the season-opening lines until the book posts a live number, then switch over automatically.</p></details>
+<details><summary>What's "chance every pick so far hits"?</summary><p>All your picks' win chances multiplied together. It's the probability that every pick on the sheet wins, which is what surviving requires. It gets small fast: twenty 75% picks come out to about 0.3%, which is why survivor pools pay so well.</p></details>
+<details><summary>What are the tiers next to each team?</summary><p>The preseason S-to-DS grades from the pick sheet, a quick read on team quality. They don't change during the season; the win percentages do.</p></details>
+
+<h2 id="using">Using it</h2>
+<details><summary>How do I make a pick?</summary><p>Click the cell where a team meets a leg. Click again to remove it. If a team is already used elsewhere on that sheet, the cell is struck through and clicking tells you where it's used.</p></details>
+<details><summary>Board view or Weeks view?</summary><p><b>Board</b> is the whole season on one grid, best for planning the full path and spotting where your strong teams have their best spots. <b>Weeks</b> lists each leg's games sorted by the favorite's chance, best for deciding this week's pick.</p></details>
+<details><summary>What does clicking a team's abbreviation do?</summary><p>Spotlights that team's whole season: every cell shows the opponent, and the bar at the top lists its six best spots. Click <b>Clear</b> or the team again to turn it off.</p></details>
+<details><summary>What are the Thanksgiving and Christmas legs?</summary><p>Circa counts them as separate legs. Thanksgiving covers Wednesday through Black Friday, November 25 to 27. Christmas covers December 24 and 25. The rest of those weeks are Week 12 and Week 16. On the board they're marked with purple and red top edges.</p></details>
+<details><summary>Can I see how my picks are doing?</summary><p>Yes. Finished games show a W or L on the cell, and the summary flips to <b>ALIVE</b> or <b>OUT</b> with your record once the season's games start finishing.</p></details>
+<details><summary>Why can't I edit the Optimal default sheet?</summary><p>It's a fixed reference so everyone can compare against the same thing. Duplicate it to get an editable copy.</p></details>
+
+<h2 id="sharing">Sharing</h2>
+<details><summary>How do I share with my group?</summary><p>Click <b>Share</b>. Buy a seat for each person, invite them by email, then send them your link. They sign in with the email you invited and land on your sheets.</p></details>
+<details><summary>What can people I share with see and do?</summary><p>Everything you can: every sheet you own, now and in the future, with full editing. Their changes show up on your screen live, and yours on theirs. They can't invite others or buy things on your account.</p></details>
+<details><summary>Do they need to buy anything?</summary><p>No. You buy the seat; they just sign in.</p></details>
+<details><summary>Can I remove someone?</summary><p>Yes, from the Share dialog. They lose access to your sheets immediately and the seat frees up for someone else.</p></details>
+<details><summary>Can two people edit at the same time?</summary><p>Yes. Every pick saves instantly and shows up for everyone on the sheet within a second or two.</p></details>
+<details><summary>Someone shared with me. Where are their sheets?</summary><p>Open the link they sent you while signed in with the address they invited. If you also own sheets, the <b>All sheets</b> button at the top switches between your sheets and theirs.</p></details>
+
+<h2 id="buying">Buying</h2>
+<details><summary>What does it cost?</summary><ul><li><b>Sheet:</b> $10 each, one time, for the whole 2026 season.</li><li><b>Extra login:</b> $5 per person, one time, for the whole season.</li></ul><p>No subscription, nothing recurring. Sales tax may apply at checkout.</p></details>
+<details><summary>Why is each sheet a separate purchase?</summary><p>A sheet is one entry's plan. Most people run one entry and need one sheet. If you run three entries, you get three sheets and can see all three side by side, with each one's picks shown as small colored squares on the others.</p></details>
+<details><summary>I paid but don't see my sheet.</summary><p>Give it 15 seconds and reload. Payment confirmation arrives a moment after checkout. If it's still missing, email <a href="mailto:nick.manfreda885@gmail.com">nick.manfreda885@gmail.com</a> from the address you signed in with and include the receipt Stripe emailed you.</p></details>
+<details><summary>Can I get a refund?</summary><p>Yes, within 7 days if no picks have been made on the sheet. Same for a seat if nobody has joined on it. Email <a href="mailto:nick.manfreda885@gmail.com">nick.manfreda885@gmail.com</a>. Full details are on the <a href="terms.html">terms page</a>.</p></details>
+<details><summary>Is my card information safe?</summary><p>Checkout is handled entirely by Stripe. Your card number never touches our systems.</p></details>
+
+<h2 id="account">Account</h2>
+<details><summary>How do I sign in?</summary><p>With Google, or with an email link. There's no password. With the email option we send a link; open it on the same device and you're in.</p></details>
+<details><summary>The sign-in email didn't arrive.</summary><p>Check spam or promotions. It comes from a noreply address. If it's still missing after a couple of minutes, use <b>Continue with Google</b> instead, which needs no email at all.</p></details>
+<details><summary>Does it work on my phone?</summary><p>Yes. The board scrolls sideways on a phone; the Weeks view is the easier one on a small screen.</p></details>
+<details><summary>What happens after the season?</summary><p>Your sheets stay readable. Next season is a new purchase, with the new schedule and lines.</p></details>
+<details><summary>How do I delete my account?</summary><p>Email <a href="mailto:nick.manfreda885@gmail.com">nick.manfreda885@gmail.com</a> from the address you signed in with. We remove your account, sheets, and picks.</p></details>
+
+<div class="cta"><b>Still have a question?</b><br><span class="muted">Email <a href="mailto:nick.manfreda885@gmail.com">nick.manfreda885@gmail.com</a> and you'll get a reply from a person.</span><br><a class="btn" href="./">Back to the board</a></div>
+<p class="muted" style="margin-top:18px"><a href="terms.html">Terms &amp; privacy</a></p>
+</main>
