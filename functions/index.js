@@ -234,11 +234,21 @@ const ODDS_KEYS = ["spread", "mlAway", "mlHome", "ou", "book"];
 // Last, current and next week every run (the week that just ended keeps getting its finals until every game is
 // done); the whole season once an hour (lines on far-off weeks barely move). Weeks are fetched one at a time with
 // a pause between them, and a week ESPN refuses is skipped and reported instead of sinking the whole run.
+// ESPN's calendar keeps a week "current" until the following Wednesday morning; ours moves on as soon as the week's
+// last game is final, so Tuesday's runs already refresh the coming week's lines. The later of the two wins.
+function weekFromResults(existing) {
+  const games = Object.values(existing);
+  for (let w = 1; w <= 18; w++) {
+    const wk = games.filter((g) => g.w === w);
+    if (!wk.length || wk.some((g) => !g.done)) return w;
+  }
+  return 18;
+}
 async function refreshOdds(all) {
-  const cur = await currentWeek();
+  const existing = (await db().ref(`odds/${SEASON}/games`).get()).val() || {};
+  const cur = Math.max(await currentWeek(), weekFromResults(existing));
   const weeks = all ? Array.from({ length: 18 }, (_, i) => i + 1)
     : [...new Set([cur - 1, cur, cur + 1].filter((w) => w >= 1 && w <= 18))];
-  const existing = (await db().ref(`odds/${SEASON}/games`).get()).val() || {};
   const updates = {};
   const failed = {};
   let n = 0;
