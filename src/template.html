@@ -145,7 +145,6 @@ table.board{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 tr.focus td.team .team-cell{height:50px}
 .cell.bye:hover{outline:none}
 .cell.used{color:var(--muted);text-decoration:line-through;opacity:.55}
-.cell.played{cursor:default}
 .cell.pick{background:var(--pick);box-shadow:inset 0 0 0 2px var(--pick-line);color:var(--ink);font-weight:500}
 .cell.pick::after{content:"";position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:var(--pick-line)}
 .cell.won::before{content:"W";position:absolute;left:3px;top:0;font-size:9px;line-height:14px;font-weight:600;color:var(--good-ink)}
@@ -353,20 +352,13 @@ function addPath(){
 function renamePath(){ if(!guard()) return; const p=activePath(); if(!p||p.locked) return; const n=prompt("Rename sheet:",p.name); if(!n) return; p.name=n.trim(); persistPath(p); render(); }
 function duplicatePath(){ if(!guard()) return; const p=activePath(); if(!p) return; const id=freeSlots()[0]; if(!id){ openModal("buypath"); return; } state.paths[id]={id,name:(p.locked?"My "+p.name:p.name+" copy"),order:nextOrder(),picks:{...p.picks}}; state.active=id; persistPath(state.paths[id]); render(); }
 function deletePath(){ if(!guard()) return; const p=activePath(); if(!p||p.locked) return; if(pathList().length<=1){ toast("Keep at least one sheet."); return; } if(!confirm("Delete \""+p.name+"\" and its picks?")) return; removePath(p.id); state.active=pathList()[0].id; render(); }
-function clearPicks(){ if(!guard()) return; const p=activePath(); if(!p||p.locked) return; if(!confirm("Clear every pick on \""+p.name+"\"?")) return;
-  const keep={}; Object.keys(p.picks).forEach(l=>{ if(played(p.picks[l],l)) keep[l]=p.picks[l]; });
-  p.picks=keep; persistPath(p); render(); if(Object.keys(keep).length) toast("Kept the picks on games that have already started."); }
-function played(t,legId){ const e=TL[t]&&TL[t][legId]; return !!(e && e.g.status!=="pre"); }
+function clearPicks(){ if(!guard()) return; const p=activePath(); if(!p||p.locked) return; if(!confirm("Clear every pick on \""+p.name+"\"?")) return; p.picks={}; persistPath(p); render(); }
 function usedIn(p, team){ for(const [leg,t] of Object.entries(p.picks||{})) if(t===team) return leg; return null; }
 function togglePick(legId, team){
   if(!guard()) return;
   const p=activePath(); if(!p) return;
   if(p.locked){ toast(p.name+" is fixed. Duplicate it to make an editable copy."); return; }
-  // Picks on games that have kicked off are final, in both directions: no picking a winner or dropping a loser after the fact.
-  const cur=p.picks[legId];
-  if(cur && played(cur,legId)){ toast(cur+"'s "+legById(legId).label+" game has "+(TL[cur][legId].g.done?"finished":"started")+", so that pick is locked."); return; }
-  if(cur!==team && played(team,legId)){ toast(team+"'s "+legById(legId).label+" game has already "+(TL[team][legId].g.done?"finished":"started")+"."); return; }
-  if(cur===team){ delete p.picks[legId]; persistPath(p); render(); return; }
+  if(p.picks[legId]===team){ delete p.picks[legId]; persistPath(p); render(); return; }
   const where=usedIn(p,team);
   if(where && where!==legId){ toast(team+" is already used in "+legById(where).label+" on this sheet. Remove it there first."); return; }
   p.picks[legId]=team; persistPath(p); render();
@@ -503,7 +495,7 @@ function renderBoard(){
       if(!e){ h+='<td><span class="cell bye'+(focused?' x2':'')+'">bye</span></td>'; return; }
       const isPick=p.picks[l.id]===t; const isUsed=used&&used!==l.id;
       const oth=others.filter(o=>o.picks&&o.picks[l.id]===t);
-      const cls='cell'+(focused?' x2':'')+(e.p<0.5?' dog':'')+(isPick?' pick':'')+(isUsed?' used':'')+(l.kind?' hol'+(l.kind==='xm'?' x':''):'')+(CHANGED.has(t+"|"+l.id)?' chg':'')+(e.g.status!=="pre"?' played':'')+(e.won===true?' won':e.won===false?' lost':'');
+      const cls='cell'+(focused?' x2':'')+(e.p<0.5?' dog':'')+(isPick?' pick':'')+(isUsed?' used':'')+(l.kind?' hol'+(l.kind==='xm'?' x':''):'')+(CHANGED.has(t+"|"+l.id)?' chg':'')+(e.won===true?' won':e.won===false?' lost':'');
       const oppLine = focused ? '<span class="opp">'+(e.home?'vs ':'@ ')+e.opp+(e.g.neutral?'*':'')+'</span>' : '';
       h+='<td><button class="'+cls+'" style="--s:'+strength(e.p).toFixed(0)+'" onclick="togglePick(\''+l.id+'\',\''+t+'\')" title="'+t+' '+(e.home?'vs':'@')+' '+e.opp+' · '+e.g.day+' '+e.g.time+' · '+(e.home?fmtML(e.g.mlHome):fmtML(e.g.mlAway))+' · '+pct(e.p)+(e.g.status!=="pre"?' · '+(e.g.done?'Final':'Live')+' '+e.g.as+'–'+e.g.hs:'')+'">'+oppLine+'<span>'+Math.round(e.p*100)+'</span>'+(oth.length?'<span class="others">'+oth.map(o=>'<i style="background:'+colorOf(o)+'" title="'+esc(o.name)+'"></i>').join('')+'</span>':'')+'</button></td>';
     });

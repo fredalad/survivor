@@ -57,10 +57,11 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
 16. Stripe runs in live mode; no test mode was used.
 17. Product name "Survivor Sheets", not "Circa Survivor" (Circa owns that name). Terms say we are not affiliated with
     Circa, the NFL, ESPN or DraftKings and take no wagers.
-18. **Once a game has kicked off, its line and its picks are frozen** (2026-09-15). `fetchOdds` and
-    `tools/fetch_odds.py --push` keep the stored spread/moneylines/total for any game past `pre` and only update
-    status and score. On the page, a team whose game has started cannot be picked or un-picked in that leg, and
-    "Clear picks" keeps those picks. The lock is per game at kickoff, not per leg at Circa's deadline.
+18. **Once a game has kicked off, its line is frozen** (2026-09-15). `fetchOdds` and `tools/fetch_odds.py --push`
+    keep the stored spread/moneylines/total for any game past `pre` and only update status and score, so a decided
+    game's win % never moves. **Picks are never locked**: a sheet must stay fully editable so someone who buys in
+    mid-season can fill in earlier legs and pool members can record what they actually played. (A per-game pick
+    lock was tried and removed the same day.)
 
 ## Architecture in one screen
 
