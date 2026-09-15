@@ -198,23 +198,39 @@ async function currentWeek() {
   } catch (e) { return 1; }
 }
 
-// Current and next week every run; the whole season once an hour (lines on far-off weeks barely move).
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Last, current and next week every run (the week that just ended keeps getting its finals until every game is
+// done); the whole season once an hour (lines on far-off weeks barely move). Weeks are fetched one at a time with
+// a pause between them, and a week ESPN refuses is skipped and reported instead of sinking the whole run.
 async function refreshOdds(all) {
   const cur = await currentWeek();
-  const weeks = all ? Array.from({ length: 18 }, (_, i) => i + 1) : [...new Set([cur, Math.min(18, cur + 1)])];
+  const weeks = all ? Array.from({ length: 18 }, (_, i) => i + 1)
+    : [...new Set([cur - 1, cur, cur + 1].filter((w) => w >= 1 && w <= 18))];
   const updates = {};
+  const failed = {};
   let n = 0;
-  for (const w of weeks) {
-    (await fetchWeek(w)).forEach((g) => { updates[`games/${g.w}_${g.away}_${g.home}`] = g; n++; });
+  for (let i = 0; i < weeks.length; i++) {
+    const w = weeks[i];
+    if (i) await sleep(250);
+    try {
+      (await fetchWeek(w)).forEach((g) => { updates[`games/${g.w}_${g.away}_${g.home}`] = g; n++; });
+    } catch (err) {
+      failed[w] = String((err && err.message) || err);
+    }
   }
-  updates.meta = { updated: Date.now(), source: "DraftKings via ESPN", season: SEASON, weeks, currentWeek: cur };
+  const done = weeks.filter((w) => !(w in failed));
+  if (!done.length) throw new Error(`ESPN: every week failed: ${JSON.stringify(failed)}`);
+  updates.meta = { updated: Date.now(), source: "DraftKings via ESPN", season: SEASON, weeks: done, currentWeek: cur,
+    ...(done.length < weeks.length ? { failed } : {}) };
   await db().ref(`odds/${SEASON}`).update(updates);
-  return { weeks, games: n, currentWeek: cur };
+  return { weeks: done, failed, games: n, currentWeek: cur };
 }
 
 exports.fetchOdds = onSchedule({ schedule: "every 10 minutes", timeZone: "America/New_York", timeoutSeconds: 120 }, async () => {
   const r = await refreshOdds(new Date().getMinutes() < 10);
   console.log("odds refreshed", JSON.stringify(r));
+  if (Object.keys(r.failed).length) console.warn("odds: weeks skipped", JSON.stringify(r.failed));
 });
 
 exports.refreshOdds = onRequest(async (req, res) => {
