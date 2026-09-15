@@ -24,7 +24,6 @@ const APP_URL = defineString("APP_URL", { default: "https://survivor-2026-34ce6.
 const ODDS_REFRESH_KEY = defineString("ODDS_REFRESH_KEY", { default: "" });
 
 const SEASON = 2026;
-// ESPN returns 403 for custom or browser-like user-agents; Node's default fetch UA is accepted, so send none.
 const db = () => getDatabase();
 
 // ---------------------------------------------------------------- payments
@@ -143,7 +142,39 @@ exports.invite = onCall(async (req) => {
 });
 
 // ---------------------------------------------------------------- odds
-const ESPN = (w) => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?week=${w}&seasontype=2&dates=${SEASON}`;
+// ESPN sits behind a bot filter whose rules change without notice: at launch it accepted Node's bare user-agent and
+// refused browser-like ones; later it refused everything from this function with HTTP 403. So each request tries,
+// in order: the plain request, the same endpoint with browser headers, and the cdn.espn.com copy of the scoreboard
+// (a different edge). Whatever works is tried first next time. w = null means "ESPN's current week".
+const SITE = (w) => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` +
+  (w ? `?week=${w}&seasontype=2&dates=${SEASON}` : "");
+const CDN = (w) => `https://cdn.espn.com/core/nfl/scoreboard?xhr=1` + (w ? `&week=${w}&year=${SEASON}&seasontype=2` : "");
+const BROWSER = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9",
+  "Referer": "https://www.espn.com/nfl/scoreboard", "Origin": "https://www.espn.com",
+};
+const WAYS = [
+  { name: "site", url: SITE, headers: {}, board: (d) => d },
+  { name: "site+browser", url: SITE, headers: BROWSER, board: (d) => d },
+  { name: "cdn", url: CDN, headers: BROWSER, board: (d) => (d.content && d.content.sbData) || {} },
+];
+let preferred = 0;
+async function scoreboard(w) {
+  const errors = [];
+  for (let k = 0; k < WAYS.length; k++) {
+    const i = (preferred + k) % WAYS.length, way = WAYS[i];
+    try {
+      const r = await fetch(way.url(w), { headers: way.headers });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const b = way.board(await r.json());
+      if (!b || (!b.events && !b.week)) throw new Error("unexpected body");
+      if (i !== preferred) { console.log(`espn: switching to "${way.name}"`); preferred = i; }
+      return b;
+    } catch (err) { errors.push(`${way.name}: ${(err && err.message) || err}`); }
+  }
+  throw new Error(`ESPN week ${w || "current"}: ${errors.join("; ")}`);
+}
 const ET = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York", weekday: "short", year: "numeric", month: "2-digit", day: "2-digit",
   hour: "numeric", minute: "2-digit", hour12: true,
@@ -186,16 +217,13 @@ function parseEvent(e, w) {
   };
 }
 async function fetchWeek(w) {
-  const r = await fetch(ESPN(w));
-  if (!r.ok) throw new Error(`ESPN week ${w}: HTTP ${r.status}`);
-  const d = await r.json();
-  return (d.events || []).map((e) => parseEvent(e, w));
+  return ((await scoreboard(w)).events || []).map((e) => parseEvent(e, w));
 }
 async function currentWeek() {
   try {
-    const d = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard").then((r) => r.json());
-    return (d.week && d.week.number) || 1;
-  } catch (e) { return 1; }
+    const b = await scoreboard(null);
+    return (b.week && b.week.number) || 1;
+  } catch (err) { console.warn("espn: current week unknown, assuming 1 -", (err && err.message) || err); return 1; }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
