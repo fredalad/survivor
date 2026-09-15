@@ -94,11 +94,17 @@ time with a pause; a week ESPN refuses is skipped and listed in `odds/2026/meta.
 run. `currentWeek()` comes from ESPN's default scoreboard.
 
 ESPN sits behind a bot filter whose rules change. At launch it accepted Node's bare user-agent and refused
-browser-like ones; from about 2026-09-14 it refused every request from the function with HTTP 403 while still
-answering `Python-urllib` from a home IP. `scoreboard()` in `functions/index.js` therefore tries, in order: plain
-request, `Python-urllib` UA, full browser headers, and the `cdn.espn.com` copy of the scoreboard, and remembers
-what worked. If all four are refused from Google Cloud, the fetcher has to run somewhere else (plan: GitHub
-Actions cron running `tools/fetch_odds.py --push` with the service-account key as a repo secret).
+browser-like ones. From Sunday night 2026-09-13 (first logged failure 05:33Z Sep 14) until Tuesday afternoon
+Sep 15 it answered every request from the function with HTTP 403 while still answering `Python-urllib` from a
+home IP; that is why Week 1's Sunday-night and Monday finals were missing while the afternoon games had theirs.
+The block lifted on its own: the first run of the fallback code (Sep 15 ~18:00Z) succeeded with the plain request
+and no fallback has been used since. `scoreboard()` in `functions/index.js` nevertheless tries, in order: plain
+request, `Python-urllib` UA, full browser headers, and the `cdn.espn.com` copy of the scoreboard, remembers what
+worked, and logs `espn: switching to "..."` when it changes — grep the function log for `switching` to see
+whether the fallbacks are ever in use. If all four are refused from Google Cloud, the fetcher has to run
+somewhere else (plan: GitHub Actions cron running `tools/fetch_odds.py --push` with the service-account key as a
+repo secret). Silent failure is the thing to watch for: a run that fails still logs an error, but nobody reads
+the log — checking `odds/2026/meta.updated` is the quick health check.
 
 Manual backfill from Nick's machine (proven to work):
 `$env:GOOGLE_APPLICATION_CREDENTIALS="C:\Users\Nick\survivor\service-account.json"; python tools\fetch_odds.py --push --no-bake`.
@@ -141,8 +147,9 @@ everyone; that is a safe state and it is not needed.
 
 ## Open items
 
-1. Confirm `fetchOdds` is writing again after the ESPN fallback deploy; if all four styles 403, move the fetcher
-   to GitHub Actions.
+1. `fetchOdds` is healthy again as of 2026-09-15 (writes every 10 minutes, `failed: {}`). If it goes dark again
+   and all four request styles 403, move the fetcher to GitHub Actions. Consider an alert on a stale
+   `odds/2026/meta.updated` so the next outage is noticed before Sunday.
 2. Stripe account and product setup — status and naming are tracked in the Stripe dashboard, not here.
 3. End-to-end seat test: buy a seat, invite a second Google account, join via the link, confirm it sees the
    sheets, then refund.
