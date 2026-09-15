@@ -24,7 +24,6 @@ const APP_URL = defineString("APP_URL", { default: "https://survivor-2026-34ce6.
 const ODDS_REFRESH_KEY = defineString("ODDS_REFRESH_KEY", { default: "" });
 
 const SEASON = 2026;
-// ESPN returns 403 for custom or browser-like user-agents; Node's default fetch UA is accepted, so send none.
 const db = () => getDatabase();
 
 // ---------------------------------------------------------------- payments
@@ -143,7 +142,40 @@ exports.invite = onCall(async (req) => {
 });
 
 // ---------------------------------------------------------------- odds
-const ESPN = (w) => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?week=${w}&seasontype=2&dates=${SEASON}`;
+// ESPN sits behind a bot filter whose rules change without notice: at launch it accepted Node's bare user-agent and
+// refused browser-like ones; later it refused everything from this function with HTTP 403. So each request tries,
+// in order: the plain request, the same endpoint with the user-agent tools/fetch_odds.py sends (known accepted), the
+// same endpoint with browser headers, and the cdn.espn.com copy of the scoreboard (a different edge). Whatever works is tried first next time. w = null means "ESPN's current week".
+const SITE = (w) => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` +
+  (w ? `?week=${w}&seasontype=2&dates=${SEASON}` : "");
+const CDN = (w) => `https://cdn.espn.com/core/nfl/scoreboard?xhr=1` + (w ? `&week=${w}&year=${SEASON}&seasontype=2` : "");
+const BROWSER = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9",
+  "Referer": "https://www.espn.com/nfl/scoreboard", "Origin": "https://www.espn.com",
+};
+const WAYS = [
+  { name: "site", url: SITE, headers: {}, board: (d) => d },
+  { name: "site+urllib", url: SITE, headers: { "User-Agent": "Python-urllib/3.12" }, board: (d) => d },  // tools/fetch_odds.py's UA
+  { name: "site+browser", url: SITE, headers: BROWSER, board: (d) => d },
+  { name: "cdn", url: CDN, headers: BROWSER, board: (d) => (d.content && d.content.sbData) || {} },
+];
+let preferred = 0;
+async function scoreboard(w) {
+  const errors = [];
+  for (let k = 0; k < WAYS.length; k++) {
+    const i = (preferred + k) % WAYS.length, way = WAYS[i];
+    try {
+      const r = await fetch(way.url(w), { headers: way.headers });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const b = way.board(await r.json());
+      if (!b || (!b.events && !b.week)) throw new Error("unexpected body");
+      if (i !== preferred) { console.log(`espn: switching to "${way.name}"`); preferred = i; }
+      return b;
+    } catch (err) { errors.push(`${way.name}: ${(err && err.message) || err}`); }
+  }
+  throw new Error(`ESPN week ${w || "current"}: ${errors.join("; ")}`);
+}
 const ET = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York", weekday: "short", year: "numeric", month: "2-digit", day: "2-digit",
   hour: "numeric", minute: "2-digit", hour12: true,
@@ -186,35 +218,55 @@ function parseEvent(e, w) {
   };
 }
 async function fetchWeek(w) {
-  const r = await fetch(ESPN(w));
-  if (!r.ok) throw new Error(`ESPN week ${w}: HTTP ${r.status}`);
-  const d = await r.json();
-  return (d.events || []).map((e) => parseEvent(e, w));
+  return ((await scoreboard(w)).events || []).map((e) => parseEvent(e, w));
 }
 async function currentWeek() {
   try {
-    const d = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard").then((r) => r.json());
-    return (d.week && d.week.number) || 1;
-  } catch (e) { return 1; }
+    const b = await scoreboard(null);
+    return (b.week && b.week.number) || 1;
+  } catch (err) { console.warn("espn: current week unknown, assuming 1 -", (err && err.message) || err); return 1; }
 }
 
-// Current and next week every run; the whole season once an hour (lines on far-off weeks barely move).
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Once a game has kicked off its lines are frozen at the closing number; only status and score change after that.
+const ODDS_KEYS = ["spread", "mlAway", "mlHome", "ou", "book"];
+
+// Last, current and next week every run (the week that just ended keeps getting its finals until every game is
+// done); the whole season once an hour (lines on far-off weeks barely move). Weeks are fetched one at a time with
+// a pause between them, and a week ESPN refuses is skipped and reported instead of sinking the whole run.
 async function refreshOdds(all) {
   const cur = await currentWeek();
-  const weeks = all ? Array.from({ length: 18 }, (_, i) => i + 1) : [...new Set([cur, Math.min(18, cur + 1)])];
+  const weeks = all ? Array.from({ length: 18 }, (_, i) => i + 1)
+    : [...new Set([cur - 1, cur, cur + 1].filter((w) => w >= 1 && w <= 18))];
+  const existing = (await db().ref(`odds/${SEASON}/games`).get()).val() || {};
   const updates = {};
+  const failed = {};
   let n = 0;
-  for (const w of weeks) {
-    (await fetchWeek(w)).forEach((g) => { updates[`games/${g.w}_${g.away}_${g.home}`] = g; n++; });
+  for (let i = 0; i < weeks.length; i++) {
+    const w = weeks[i];
+    if (i) await sleep(250);
+    try {
+      (await fetchWeek(w)).forEach((g) => {
+        const k = `${g.w}_${g.away}_${g.home}`, old = existing[k];
+        if (old && old.status && old.status !== "pre") ODDS_KEYS.forEach((f) => { g[f] = old[f] == null ? null : old[f]; });
+        updates[`games/${k}`] = g; n++;
+      });
+    } catch (err) {
+      failed[w] = String((err && err.message) || err);
+    }
   }
-  updates.meta = { updated: Date.now(), source: "DraftKings via ESPN", season: SEASON, weeks, currentWeek: cur };
+  const done = weeks.filter((w) => !(w in failed));
+  if (!done.length) throw new Error(`ESPN: every week failed: ${JSON.stringify(failed)}`);
+  updates.meta = { updated: Date.now(), source: "DraftKings via ESPN", season: SEASON, weeks: done, currentWeek: cur,
+    ...(done.length < weeks.length ? { failed } : {}) };
   await db().ref(`odds/${SEASON}`).update(updates);
-  return { weeks, games: n, currentWeek: cur };
+  return { weeks: done, failed, games: n, currentWeek: cur };
 }
 
 exports.fetchOdds = onSchedule({ schedule: "every 10 minutes", timeZone: "America/New_York", timeoutSeconds: 120 }, async () => {
   const r = await refreshOdds(new Date().getMinutes() < 10);
   console.log("odds refreshed", JSON.stringify(r));
+  if (Object.keys(r.failed).length) console.warn("odds: weeks skipped", JSON.stringify(r.failed));
 });
 
 exports.refreshOdds = onRequest(async (req, res) => {
