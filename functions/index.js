@@ -144,8 +144,8 @@ exports.invite = onCall(async (req) => {
 // ---------------------------------------------------------------- odds
 // ESPN sits behind a bot filter whose rules change without notice: at launch it accepted Node's bare user-agent and
 // refused browser-like ones; later it refused everything from this function with HTTP 403. So each request tries,
-// in order: the plain request, the same endpoint with browser headers, and the cdn.espn.com copy of the scoreboard
-// (a different edge). Whatever works is tried first next time. w = null means "ESPN's current week".
+// in order: the plain request, the same endpoint with the user-agent tools/fetch_odds.py sends (known accepted), the
+// same endpoint with browser headers, and the cdn.espn.com copy of the scoreboard (a different edge). Whatever works is tried first next time. w = null means "ESPN's current week".
 const SITE = (w) => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` +
   (w ? `?week=${w}&seasontype=2&dates=${SEASON}` : "");
 const CDN = (w) => `https://cdn.espn.com/core/nfl/scoreboard?xhr=1` + (w ? `&week=${w}&year=${SEASON}&seasontype=2` : "");
@@ -156,6 +156,7 @@ const BROWSER = {
 };
 const WAYS = [
   { name: "site", url: SITE, headers: {}, board: (d) => d },
+  { name: "site+urllib", url: SITE, headers: { "User-Agent": "Python-urllib/3.12" }, board: (d) => d },  // tools/fetch_odds.py's UA
   { name: "site+browser", url: SITE, headers: BROWSER, board: (d) => d },
   { name: "cdn", url: CDN, headers: BROWSER, board: (d) => (d.content && d.content.sbData) || {} },
 ];
