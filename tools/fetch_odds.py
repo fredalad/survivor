@@ -93,10 +93,15 @@ def key(g):
     return "%d_%s_%s" % (g["w"], g["away"], g["home"])
 
 
+ODDS_KEYS = ("spread", "mlAway", "mlHome", "ou", "book")   # frozen once a game has kicked off
+
+
 def to_row(g, old=None):
-    """Fallback to the previously baked value for anything ESPN left blank."""
+    """Fallback to the previously baked value for anything ESPN left blank, and keep the baked line as it was once
+    the game has kicked off (the page freezes lines at kickoff)."""
+    started = old is not None and g["status"] != "pre"
     def pick(new, idx):
-        return new if new is not None else (old[idx] if old else None)
+        return old[idx] if old and (started or new is None) else new
     return [g["w"], g["date"], g["day"], g["time"], g["away"], g["home"],
             pick(g["spread"], 6), pick(g["mlAway"], 7), pick(g["mlHome"], 8), pick(g["ou"], 9), g["neutral"]]
 
@@ -141,6 +146,12 @@ def main():
         cfg = json.load(open(os.path.join(ROOT, "firebase-config.json"), encoding="utf-8"))
         firebase_admin.initialize_app(credentials.ApplicationDefault(), {"databaseURL": cfg["databaseURL"]})
         ref = db.reference("odds/%d" % SEASON)
+        existing = ref.child("games").get() or {}
+        for k, g in doc["games"].items():          # same freeze as the Cloud Function
+            old = existing.get(k)
+            if old and old.get("status", "pre") != "pre":
+                for f in ODDS_KEYS:
+                    g[f] = old.get(f)
         ref.child("games").update(doc["games"])
         ref.child("meta").set(doc["meta"])
         print("pushed to odds/%d" % SEASON)

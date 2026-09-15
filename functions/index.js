@@ -228,6 +228,8 @@ async function currentWeek() {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Once a game has kicked off its lines are frozen at the closing number; only status and score change after that.
+const ODDS_KEYS = ["spread", "mlAway", "mlHome", "ou", "book"];
 
 // Last, current and next week every run (the week that just ended keeps getting its finals until every game is
 // done); the whole season once an hour (lines on far-off weeks barely move). Weeks are fetched one at a time with
@@ -236,6 +238,7 @@ async function refreshOdds(all) {
   const cur = await currentWeek();
   const weeks = all ? Array.from({ length: 18 }, (_, i) => i + 1)
     : [...new Set([cur - 1, cur, cur + 1].filter((w) => w >= 1 && w <= 18))];
+  const existing = (await db().ref(`odds/${SEASON}/games`).get()).val() || {};
   const updates = {};
   const failed = {};
   let n = 0;
@@ -243,7 +246,11 @@ async function refreshOdds(all) {
     const w = weeks[i];
     if (i) await sleep(250);
     try {
-      (await fetchWeek(w)).forEach((g) => { updates[`games/${g.w}_${g.away}_${g.home}`] = g; n++; });
+      (await fetchWeek(w)).forEach((g) => {
+        const k = `${g.w}_${g.away}_${g.home}`, old = existing[k];
+        if (old && old.status && old.status !== "pre") ODDS_KEYS.forEach((f) => { g[f] = old[f] == null ? null : old[f]; });
+        updates[`games/${k}`] = g; n++;
+      });
     } catch (err) {
       failed[w] = String((err && err.message) || err);
     }
