@@ -417,10 +417,14 @@ function updateSync(){
 }
 function updateLines(){
   const el=document.getElementById("lines"); el.hidden = !(mode==="board"||mode==="demo"); if(el.hidden) return;
-  const mins=Math.max(0,Math.round((Date.now()-LINES.at)/60000));
-  const ago = mins<1 ? "just now" : mins<60 ? mins+" min ago" : mins<2880 ? Math.round(mins/60)+" h ago" : fmtD(new Date(LINES.at).toISOString().slice(0,10));
+  const d=new Date(LINES.at), now=new Date();
+  const time=d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  const sameDay=d.toDateString()===now.toDateString();
+  const mins=Math.max(0,Math.round((now-d)/60000));
+  const ago = mins<1 ? "just now" : mins<60 ? mins+" min ago" : Math.round(mins/60)+" h ago";
   el.classList.toggle("live",LINES.live);
-  el.querySelector("span").textContent = LINES.source+" · "+(LINES.live?"live · ":"")+ago;
+  el.querySelector("span").textContent = "Odds updated "+(sameDay ? time : MON[d.getMonth()]+" "+d.getDate()+", "+time);
+  el.title = ago+(LINES.live ? " · refreshes every 10 minutes" : " · baked into the page; live lines unavailable");
 }
 setInterval(updateLines, 30000);
 function renderBanner(){
