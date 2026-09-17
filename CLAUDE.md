@@ -74,7 +74,12 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     still `pre`. Result at `odds/2026/optimal` = `{picks, fixed, prob, updated, changes, lockedLeg}`;
     `changes[leg] = {from, to, at}` keeps the latest change per leg; the page shows a gold dot for legs changed in
     the last 7 days and a "Re-solved … changed this week: … Held until Week N is done." line on the Optimal sheet.
-    Until the first live solve the page uses the baked seed. `tools/fetch_odds.py --push` does not re-solve.
+    Until the first live solve the page uses the baked seed. `tools/fetch_odds.py --push` does not re-solve;
+    `node functions\solve-now.js` does (ignores the cadence gate; `--dry` previews).
+20. **Analytics** = GA4 through the Firebase SDK (`firebase.analytics()`), enabled 2026-09-17. The SDK fetches the
+    measurement id itself once Google Analytics is enabled on the Firebase project, so nothing is in the config.
+    Events: view_mode, signin_start, login, buy_prompt, begin_checkout, purchase_return, invite_sent,
+    join_link_opened. Reports live in the GA4 property linked from Firebase → Project settings → Integrations.
 
 ## Architecture in one screen
 
@@ -91,6 +96,7 @@ database.rules.json    odds public-read; boards readable/writable by owner + own
                        slots, seats, invites-create, purchases; legacy board FcNiUIfqtOT6tBjo fully open
 tools/fetch_odds.py    same ESPN mapping as the function; refreshes src/games.json; --push writes odds/2026
 tools/admin.py         claim-board, grant-paths, add-seats, refund-check, list-boards (service-account key)
+functions/solve-now.js run the Optimal solve by hand from Nick's machine (--dry, --seed); same code as the function
 ```
 
 Page modes: `demo` (signed out, free preview) → `home` (only when >1 destination) → `board` → `gate`

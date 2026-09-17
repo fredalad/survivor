@@ -767,7 +767,7 @@ function bootFirebase(){
   if(!FIREBASE_CONFIG || !window.firebase) return false;
   try{
     fb=firebase.initializeApp(FIREBASE_CONFIG); auth=firebase.auth(); db=firebase.database();
-    if(FIREBASE_CONFIG.measurementId && firebase.analytics){ try{ ga=firebase.analytics(); }catch(e){ console.warn("analytics off", e&&e.code); } }
+    if(firebase.analytics && !USE_EMU){ try{ ga=firebase.analytics(); }catch(e){ console.warn("analytics off", e&&e.code); } }   // measurementId is fetched by the SDK once GA is enabled on the project
     if(PARAMS.get("paid")) track("purchase_return", {kind: PARAMS.get("paid")});
     if(PARAMS.has("join")) track("join_link_opened");
     if(USE_EMU){ auth.useEmulator("http://localhost:9099"); db.useEmulator("localhost",9000); firebase.functions().useEmulator("localhost",5001); }
