@@ -2,8 +2,9 @@
 //   createCheckout  (callable)  - starts a Stripe Checkout for paths ($10 each) or for pool seats ($5 each)
 //   stripeWebhook   (https)     - fulfils paid checkouts: adds path slots (and the board on first purchase) / adds seats
 //   invite          (callable)  - owner invites an email to their pool; the server enforces the seat count
-//   fetchOdds       (schedule)  - every 10 minutes, DraftKings lines + scores from ESPN -> odds/2026; on the hourly
-//                                 all-weeks pass also re-solves the Optimal reference path -> odds/2026/optimal
+//   fetchOdds       (schedule)  - every 10 minutes, DraftKings lines + scores from ESPN -> odds/2026; also re-solves
+//                                 the Optimal reference path -> odds/2026/optimal (hourly until the week's first
+//                                 kickoff, once more right after it, then not until the week is done)
 //   refreshOdds     (https)     - manual odds refresh, guarded by ODDS_REFRESH_KEY
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -273,27 +274,35 @@ async function refreshOdds(all) {
   updates.meta = { updated: Date.now(), source: "DraftKings via ESPN", season: SEASON, weeks: done, currentWeek: cur,
     ...(done.length < weeks.length ? { failed } : {}) };
   let opt = null;
-  if (all && done.length === weeks.length) opt = await resolveOptimal(existing, updates);
+  if (done.length === weeks.length) opt = await resolveOptimal(existing, updates, all);
   await db().ref(`odds/${SEASON}`).update(updates);
   return { weeks: done, failed, games: n, currentWeek: cur, ...(opt ? { optimalChanged: opt } : {}) };
 }
 
-// Re-solve the Optimal reference path whenever the whole season's lines were just refreshed. Legs whose pick has
-// kicked off stay fixed (see optimal.js). Writes odds/{season}/optimal = { picks, fixed, prob, updated, changes },
-// where changes keeps the most recent change per leg so the page can flag what moved this week.
-async function resolveOptimal(existing, updates) {
+// Re-solve the Optimal reference path. Cadence: hourly (on the all-weeks pass) while the leg in play has no game
+// started; one final solve on the first pass after the leg's first kickoff (Thursday night); then nothing until every
+// game in that leg is final (after Monday night), when hourly solving resumes for the next leg. Legs whose pick has
+// kicked off stay fixed (see optimal.js). Writes odds/{season}/optimal = { picks, fixed, prob, updated, changes,
+// lockedLeg }, where changes keeps the most recent change per leg so the page can flag what moved this week.
+async function resolveOptimal(existing, updates, all) {
   const games = { ...existing };
   Object.keys(updates).forEach((k) => { if (k.startsWith("games/")) games[k.slice(6)] = updates[k]; });
   const prev = (await db().ref(`odds/${SEASON}/optimal`).get()).val() || {};
+  const leg = optimal.currentLeg(games);
+  let why;
+  if (!leg) return null;                                              // season over
+  else if (!leg.started) { if (!all) return null; why = "hourly"; }   // open week: hourly only
+  else if (prev.lockedLeg === leg.id) return null;                    // week in play: already did the final solve
+  else why = `final for ${leg.id}`;                                   // first pass after kickoff
   const current = prev.picks || OPTIMAL_SEED;
   const r = optimal.solve(games, current);
   const now = Date.now(), changes = { ...(prev.changes || {}) }, moved = [];
   optimal.LEG_IDS.forEach((l) => {
     if (r.picks[l] !== current[l]) { changes[l] = { from: current[l] || null, to: r.picks[l] || null, at: now }; moved.push(`${l}:${current[l] || "-"}>${r.picks[l] || "-"}`); }
   });
-  updates.optimal = { picks: r.picks, fixed: r.fixed, prob: r.prob, updated: now, changes };
-  if (moved.length) console.log("optimal re-solved, changed", moved.join(" "));
-  return moved;
+  updates.optimal = { picks: r.picks, fixed: r.fixed, prob: r.prob, updated: now, changes, lockedLeg: leg.started ? leg.id : null };
+  console.log(`optimal re-solved (${why})`, moved.length ? "changed " + moved.join(" ") : "no change");
+  return { why, moved };
 }
 
 exports.fetchOdds = onSchedule({ schedule: "every 10 minutes", timeZone: "America/New_York", timeoutSeconds: 120 }, async () => {

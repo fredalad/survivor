@@ -86,4 +86,18 @@ function solve(games, current) {
   return { picks, fixed, prob };
 }
 
-module.exports = { solve, legTable, LEG_IDS, legOf };
+// The leg in play: the first one (in leg order) with a game not yet final. { id, started } where started means at
+// least one of its games has kicked off. Null once the season is over.
+function currentLeg(games) {
+  const legs = {}; LEG_IDS.forEach((l) => { legs[l] = { any: false, allDone: true, started: false }; });
+  Object.values(games).forEach((g) => {
+    if (!g || g.w < 1 || g.w > 18) return;
+    const L = legs[legOf(g)]; L.any = true;
+    if (!g.done) L.allDone = false;
+    if ((g.status || "pre") !== "pre") L.started = true;
+  });
+  for (const l of LEG_IDS) { const L = legs[l]; if (L.any && !L.allDone) return { id: l, started: L.started }; }
+  return null;
+}
+
+module.exports = { solve, legTable, LEG_IDS, legOf, currentLeg };

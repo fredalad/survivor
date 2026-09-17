@@ -370,10 +370,10 @@ function togglePick(legId, team){
 const WEEK_MS=7*86400000;
 function recentlyMoved(legId){ const c=OPT.changes&&OPT.changes[legId]; return !!(c && Date.now()-c.at<WEEK_MS); }
 function optimalNote(){
-  if(!OPT.updated) return "Reference sheet solved from the season-opening lines; it re-solves from live lines once lines stream in.";
+  if(!OPT.updated) return "Reference sheet solved from the season-opening lines; it re-solves from live lines once they stream in.";
   const moved=LEGS.filter(l=>recentlyMoved(l.id)); const d=new Date(OPT.updated);
   const when=d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):MON[d.getMonth()]+" "+d.getDate();
-  return "Re-solved from live lines "+when+(moved.length?" · changed this week: "+moved.map(l=>l.short+" "+esc(OPT.changes[l.id].from||"–")+"→"+esc(OPT.changes[l.id].to||"–")).join(", "):" · no changes this week")+". Legs already played stay fixed.";
+  return "Re-solved from live lines "+when+(moved.length?" · changed this week: "+moved.map(l=>l.short+" "+esc(OPT.changes[l.id].from||"–")+"→"+esc(OPT.changes[l.id].to||"–")).join(", "):" · no changes this week")+(OPT.lockedLeg?". Held until "+(legById(OPT.lockedLeg)||{label:"this week"}).label+" is done.":". Updates hourly until the week's first kickoff.");
 }
 function pathStats(p){
   const picks=p.picks||{}; let n=0, prod=1, weakest=null, w=0, l=0;
@@ -440,7 +440,7 @@ setInterval(updateLines, 30000);
 function renderBanner(){
   const el=document.getElementById("banner"); let h="";
   const dismiss='<span class="spacer"></span><button class="btn small" onclick="dismissBanner()">Got it</button>';
-  if(mode==="demo") h='<div class="banner"><b>Free preview.</b> This is the Optimal sheet, re-solved from live lines every hour; legs already played stay as picked. Buy a sheet to build your own plan and share it with your pool.<span class="spacer"></span><button class="btn small primary" onclick="paywall()">Buy a sheet · $'+APP.priceSheet+'</button><button class="btn small" onclick="openModal(\'signin\')">Sign in</button></div>';
+  if(mode==="demo") h='<div class="banner"><b>Free preview.</b> This is the Optimal sheet, re-solved from live lines each week until the first kickoff, then held until the week is done. Buy a sheet to build your own plan and share it with your pool.<span class="spacer"></span><button class="btn small primary" onclick="paywall()">Buy a sheet · $'+APP.priceSheet+'</button><button class="btn small" onclick="openModal(\'signin\')">Sign in</button></div>';
   else if(PARAMS.get("paid")==="path") h='<div class="banner">Payment received. '+(freeSlots().length?'Click <b>+ New sheet</b> to set it up.':'Your new sheet is being added…')+dismiss+'</div>';
   else if(PARAMS.get("paid")==="seats") h='<div class="banner">Seats added. Now invite people with <b>Share</b>.'+dismiss+'</div>';
   else if(mode==="board" && role==="owner" && !Object.keys(pool.team).length && !Object.keys(pool.invites).length && !nudgeDismissed()) h='<div class="banner"><b>Playing with a group?</b> Share your sheets and everyone sees every pick live. Each extra login is $'+APP.priceSeats+' for the season.<span class="spacer"></span><button class="btn small primary share" onclick="openModal(\'sheet\')">Share</button><button class="btn small" onclick="dismissNudge()">Not now</button></div>';
@@ -455,7 +455,7 @@ function renderPricing(){
   el.innerHTML='<h2>Pricing</h2><div class="cards"><div class="card"><div class="nm">Sheet · $'+APP.priceSheet+'</div><div class="meta">One full 20-leg plan for the '+SEASON+' season, with lines refreshed every 10 minutes. Running two entries? Buy two sheets.</div></div><div class="card"><div class="nm">Extra login · $'+APP.priceSeats+'</div><div class="meta">Add a friend to your pool. They see and edit every sheet you own, live. Add as many as you like, whenever you like.</div></div></div><p class="muted">One-time purchases, no subscription. Refund within 7 days if no picks have been made on the sheet. <a href="faq.html">FAQ</a> · <a href="terms.html">Terms &amp; privacy</a> · <a href="mailto:'+esc(APP.supportEmail)+'">'+esc(APP.supportEmail)+'</a></p>';
 }
 function renderPaths(){
-  let h = allPaths().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+(p.locked?" locked":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')" title="'+(p.locked?'Reference sheet, re-solved from live lines; played legs stay fixed':'')+'"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span>'+(p.locked?'<span class="lock">fixed</span>':'')+'</button>'; }).join("");
+  let h = allPaths().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+(p.locked?" locked":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')" title="'+(p.locked?'Reference sheet, re-solved from live lines until each week\'s first kickoff':'')+'"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span>'+(p.locked?'<span class="lock">fixed</span>':'')+'</button>'; }).join("");
   const free=freeSlots().length;
   h += mode==="board" ? (free ? '<button class="ptab add" onclick="addPath()">+ New sheet <span class="cnt">'+free+' unused</span></button>' : '<button class="ptab add cta" onclick="openModal(\'buypath\')">+ New sheet · $'+APP.priceSheet+'</button>') : '<button class="ptab add cta" onclick="paywall()">+ Your own sheet · $'+APP.priceSheet+'</button>';
   document.getElementById("paths").innerHTML=h;
