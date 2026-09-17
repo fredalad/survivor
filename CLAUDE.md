@@ -26,8 +26,9 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
 * **Seat** = one extra person, $5 one-time. Seats belong to the owner's **account**, not to a sheet.
 * **Pool** = everyone the owner has let in. Anyone in the pool sees and edits **every** sheet the owner has, now or
   later. Data: `users/{uid}/team/{memberUid}`, `users/{uid}/invites/{emailKey}`, `users/{memberUid}/memberOf/{ownerUid}`.
-* **Optimal default** = a fixed, read-only reference path solved from the season-opening lines, baked into the page
-  from `src/optimal.json`. It is the free preview's content and the marketing funnel. Its picks never change.
+* **Optimal default** = the read-only reference path. Seeded from the season-opening solve (`src/optimal.json`,
+  copied to `functions/optimal-seed.json`), then re-solved from live lines on every hourly all-weeks pass into
+  `odds/2026/optimal`; legs whose pick has kicked off stay fixed. It is the free preview's content and the funnel.
 
 ## Decisions, in order
 
@@ -62,6 +63,13 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     game's win % never moves. **Picks are never locked**: a sheet must stay fully editable so someone who buys in
     mid-season can fill in earlier legs and pool members can record what they actually played. (A per-game pick
     lock was tried and removed the same day.)
+19. **Optimal re-solves from live lines every hour** (2026-09-17). `functions/optimal.js`: one distinct team per leg
+    maximizing the product of de-vigged win probabilities, solved exactly (Hungarian on -log p); it reproduces the
+    Sept 9 solve under the opening lines. A leg whose current pick has kicked off is held and its team consumed;
+    open legs only consider teams whose game is still `pre`. Result at `odds/2026/optimal` = `{picks, fixed, prob,
+    updated, changes}`; `changes[leg] = {from, to, at}` keeps the latest change per leg and the page shows a gold
+    dot for legs changed in the last 7 days plus a "Re-solved … changed this week: …" line on the Optimal sheet.
+    Until the first live solve the page uses the baked seed. `tools/fetch_odds.py --push` does not re-solve.
 
 ## Architecture in one screen
 
@@ -70,7 +78,9 @@ public/index.html      built by build.py from src/template.html + games.json + n
 public/faq.html        built from src/faq.html
 public/terms.html      built from src/legal.html
 functions/index.js     createCheckout (callable), stripeWebhook (https), invite (callable),
-                       fetchOdds (every 10 min), refreshOdds (https, key-guarded; effectively disabled, see below)
+                       fetchOdds (every 10 min; hourly pass also re-solves Optimal), refreshOdds (https, key-guarded;
+                       effectively disabled, see below)
+functions/optimal.js   the Optimal solver (legs, candidate teams, Hungarian assignment); optimal-seed.json = opening solve
 database.rules.json    odds public-read; boards readable/writable by owner + owner's team; paths need a slot;
                        users/{uid} readable by self; slots readable by self + team; server-only writes for
                        slots, seats, invites-create, purchases; legacy board FcNiUIfqtOT6tBjo fully open
@@ -156,8 +166,8 @@ everyone; that is a safe state and it is not needed.
    after a real $5 purchase. `admin.py` has no `remove-seats`; comped seats are permanent.
 4. Sign-in email fixed 2026-09-17: public-facing name "Survivor Sheets" (Project settings → General), sender
    domain survivorsheets.com verified (SPF TXT, firebase= TXT, two DKIM CNAMEs at GoDaddy), sender name set.
-5. Optimal path is static. Idea: re-solve nightly from live lines and show "changed since yesterday" — past legs
-   must stay fixed.
+5. Optimal re-solve shipped 2026-09-17 (decision 19). Watch the first few hourly passes: `odds refreshed {...}`
+   gains an `optimalChanged` list when picks move, and `optimal re-solved, changed ...` is logged.
 6. Old GitHub Pages board keeps working without live odds. Migrate with `tools/admin.py claim-board --board
    FcNiUIfqtOT6tBjo --email <owner>` when Nick wants, then remove the rules exception.
 
