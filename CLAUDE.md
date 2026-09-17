@@ -146,6 +146,10 @@ everyone; that is a safe state and it is not needed.
 * The Firebase CLI skips functions whose source hash matches the last upload ("Skipped (No changes detected)"). If
   a function is genuinely stale, `firebase experiments:disable skipdeployingnoopfunctions` then deploy again.
 * RTDB rules have no `numChildren()`; seat counting is done in the `invite` function, not in rules.
+* Week 1's games in `odds/2026/games` have **null moneylines**: the Sunday `fetch_odds.py --push` ran before the
+  line freeze existed and ESPN returns no odds for finished games. The page falls back to the baked lines so the
+  board looks right, but anything server-side must never assume a played game has a line — the first Optimal solve
+  dropped Week 1 for exactly that reason and reused JAX in Week 12. Fixed legs are now decided from status alone.
 * Chrome keeps a "Not secure" flag for the whole browser session after a certificate warning; restart the browser.
 * The Firebase custom-domain wizard's redirect checkbox is easy to get backwards. Both hosts are served sites.
 

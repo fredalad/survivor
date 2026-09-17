@@ -17,16 +17,16 @@ const LEG_IDS = (() => {
 
 const impl = (ml) => (ml == null ? null : ml < 0 ? -ml / (-ml + 100) : 100 / (ml + 100));
 
-// { legId: { TEAM: { p, status } } } for every team that plays in the leg.
+// { legId: { TEAM: { p, status } } } for every team that plays in the leg. status comes from the schedule alone;
+// p is null when the game has no line (ESPN drops odds from finished games), so a played leg is still recognised.
 function legTable(games) {
   const T = {}; LEG_IDS.forEach((l) => { T[l] = {}; });
   Object.values(games).forEach((g) => {
     if (!g || !g.away || !g.home || g.w < 1 || g.w > 18) return;
-    const leg = legOf(g), pa = impl(g.mlAway), ph = impl(g.mlHome);
-    if (pa == null || ph == null) return;
-    const s = pa + ph, st = g.status || "pre";
-    T[leg][g.away] = { p: pa / s, status: st };
-    T[leg][g.home] = { p: ph / s, status: st };
+    const leg = legOf(g), pa = impl(g.mlAway), ph = impl(g.mlHome), st = g.status || "pre";
+    const s = pa != null && ph != null ? pa + ph : null;
+    T[leg][g.away] = { p: s ? pa / s : null, status: st };
+    T[leg][g.home] = { p: s ? ph / s : null, status: st };
   });
   return T;
 }
@@ -76,13 +76,13 @@ function solve(games, current) {
     const BIG = 1e6;
     const cost = open.map((l) => teams.map((t) => {
       const e = T[l][t];
-      return e && e.status === "pre" && e.p > 0 ? -Math.log(e.p) : BIG;
+      return e && e.status === "pre" && e.p != null && e.p > 0 ? -Math.log(e.p) : BIG;
     }));
     const a = hungarian(cost);
     open.forEach((l, i) => { const j = a[i]; if (j >= 0 && cost[i][j] < BIG) picks[l] = teams[j]; });
   }
-  let prob = 1;
-  LEG_IDS.forEach((l) => { const e = picks[l] && T[l][picks[l]]; if (e) prob *= e.p; });
+  let prob = 1;   // over legs that still have a line; played legs with no stored line are left out
+  LEG_IDS.forEach((l) => { const e = picks[l] && T[l][picks[l]]; if (e && e.p != null) prob *= e.p; });
   return { picks, fixed, prob };
 }
 

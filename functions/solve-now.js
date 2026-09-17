@@ -20,7 +20,7 @@ initializeApp({ credential: applicationDefault(), databaseURL: "https://survivor
   const db = getDatabase();
   const games = (await db.ref(`odds/${SEASON}/games`).get()).val() || {};
   const prev = (await db.ref(`odds/${SEASON}/optimal`).get()).val() || {};
-  const current = args.has("--seed") ? SEED : (prev.picks || SEED);
+  const current = args.has("--seed") ? SEED : { ...SEED, ...(prev.picks || {}) };
   const leg = optimal.currentLeg(games);
   const r = optimal.solve(games, current);
   const now = Date.now(), changes = { ...(prev.changes || {}) }, moved = [];

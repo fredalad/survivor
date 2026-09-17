@@ -294,7 +294,7 @@ async function resolveOptimal(existing, updates, all) {
   else if (!leg.started) { if (!all) return null; why = "hourly"; }   // open week: hourly only
   else if (prev.lockedLeg === leg.id) return null;                    // week in play: already did the final solve
   else why = `final for ${leg.id}`;                                   // first pass after kickoff
-  const current = prev.picks || OPTIMAL_SEED;
+  const current = { ...OPTIMAL_SEED, ...(prev.picks || {}) };   // a leg missing from the last solve falls back to the seed
   const r = optimal.solve(games, current);
   const now = Date.now(), changes = { ...(prev.changes || {}) }, moved = [];
   optimal.LEG_IDS.forEach((l) => {
