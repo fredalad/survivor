@@ -240,6 +240,7 @@ tr.focus td.team{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
 <script>
 // ---------- baked in by build.py ----------
 const FIREBASE_CONFIG = __FIREBASE_CONFIG__;
@@ -379,7 +380,7 @@ function seatInfo(){ const seats=pool.seats||0; const used=Object.keys(pool.team
 function inviteUrl(){ return location.origin+location.pathname+"?join="+encodeURIComponent(user.uid); }
 
 // ---------- render ----------
-function render(){
+function render(){ trackMode();
   document.body.dataset.mode=mode;
   renderHeader();
   const planner = mode==="board"||mode==="demo";
@@ -621,7 +622,7 @@ async function invite(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast("Enter a valid email address."); return; }
   if(seatInfo().left<=0){ toast("No seats left. Buy a seat first."); return; }
   try{
-    await firebase.functions().httpsCallable("invite")({email});
+    await firebase.functions().httpsCallable("invite")({email}); track("invite_sent");
     el.value=""; await copyText(inviteUrl());
     toast("Invited "+email+". Your link is copied. Send it to them; they sign in with that address.");
   }catch(e){ toast(e.message||"Could not invite."); }
@@ -637,11 +638,14 @@ async function joinPool(){
 }
 
 // ---------- purchases ----------
-function paywall(){ if(!fb){ toast("Purchases aren't available in this preview."); return; } if(!user){ openModal("buy"); return; } openModal("buypath"); }
+// ---------- analytics (GA4 via Firebase; on only when firebase-config.json has a measurementId) ----------
+let ga=null;
+function track(name, params){ try{ if(ga) ga.logEvent(name, params||{}); }catch(e){} }
+function paywall(){ track("buy_prompt", {signed_in: !!user}); if(!fb){ toast("Purchases aren't available in this preview."); return; } if(!user){ openModal("buy"); return; } openModal("buypath"); }
 async function checkout(kind, boardId, qty){
   if(!fb){ toast("Purchases aren't available in this preview."); return; }
   if(!user){ try{ localStorage.setItem(LS_INTENT, kind==="path"?"path":""); }catch(e){} openModal("signin"); return; }
-  toast("Opening secure checkout…");
+  toast("Opening secure checkout…"); track("begin_checkout", {kind, qty: qty||1});
   try{ const r=await firebase.functions().httpsCallable("createCheckout")({kind, boardId:boardId||null, qty:qty||1}); location.href=r.data.url; }
   catch(e){ toast("Checkout unavailable: "+(e.message||e.code||"error")); }
 }
@@ -651,11 +655,11 @@ async function sendLink(ev){
   ev.preventDefault();
   const email=document.getElementById("si-email").value.trim(); const msg=document.getElementById("si-msg");
   const url=location.origin+location.pathname+(BOARD_PARAM?"?b="+encodeURIComponent(BOARD_PARAM):"");
-  try{ await auth.sendSignInLinkToEmail(email,{url, handleCodeInApp:true}); try{ localStorage.setItem(LS_EMAIL,email); }catch(e){} msg.textContent="Link sent to "+email+". Open it on this device to finish signing in."; }
+  try{ await auth.sendSignInLinkToEmail(email,{url, handleCodeInApp:true}); track("signin_start", {method:"email_link"}); try{ localStorage.setItem(LS_EMAIL,email); }catch(e){} msg.textContent="Link sent to "+email+". Open it on this device to finish signing in."; }
   catch(e){ msg.textContent="Could not send the link ("+(e.code||"error")+")."; }
   return false;
 }
-async function googleSignIn(){ try{ await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); closeModal(); }catch(e){ toast("Google sign-in failed ("+(e.code||"error")+")."); } }
+async function googleSignIn(){ track("signin_start", {method:"google"}); try{ await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); closeModal(); }catch(e){ toast("Google sign-in failed ("+(e.code||"error")+")."); } }
 function signOut(){ if(auth) auth.signOut(); }
 async function finishEmailLink(){
   if(!auth.isSignInWithEmailLink(location.href)) return;
@@ -674,6 +678,8 @@ async function finishEmailLink(){
 function resetSession(){ while(detach.length) detach.pop()(); store=null; boardMeta=null; role=null; pathsLoaded=false; slots={}; slotsLoaded=false; state.paths={}; homeBoards={}; sharedBoards={}; homeLoaded=false; sharedLoaded=false; myBoardCount=0; sharedOwnerCount=0; pool={seats:0,team:{},invites:{},slots:{}}; ownerTeam={}; joinInvite=null; gateKind=null; if(modal==="sheet"||modal==="pool"||modal==="buypath") modal=null; }
 function sub(path, fn, onErr){ const r=db.ref(path); const h=r.on("value", fn, onErr||(()=>{})); detach.push(()=>r.off("value",h)); }
 function gate(kind){ gateKind=kind; mode="gate"; board=null; render(); }
+let trackedMode=null;
+function trackMode(){ if(mode!==trackedMode){ trackedMode=mode; track("view_mode", {mode, role: mode==="board"?role:undefined, gate: mode==="gate"?gateKind:undefined}); } }
 function route(){
   resetSession();
   if(!user){ mode="demo"; board=null; render(); renderModal(); return; }
@@ -751,10 +757,13 @@ function bootFirebase(){
   if(!FIREBASE_CONFIG || !window.firebase) return false;
   try{
     fb=firebase.initializeApp(FIREBASE_CONFIG); auth=firebase.auth(); db=firebase.database();
+    if(FIREBASE_CONFIG.measurementId && firebase.analytics){ try{ ga=firebase.analytics(); }catch(e){ console.warn("analytics off", e&&e.code); } }
+    if(PARAMS.get("paid")) track("purchase_return", {kind: PARAMS.get("paid")});
+    if(PARAMS.has("join")) track("join_link_opened");
     if(USE_EMU){ auth.useEmulator("http://localhost:9099"); db.useEmulator("localhost",9000); firebase.functions().useEmulator("localhost",5001); }
     db.ref(".info/connected").on("value", s=>{ connected=!!s.val(); updateSync(); });
     bootOdds();
-    finishEmailLink().finally(()=>{ auth.onAuthStateChanged(u=>{ user=u; route(); }); });
+    finishEmailLink().finally(()=>{ auth.onAuthStateChanged(u=>{ if(u && !user) track("login", {method: (u.providerData[0]||{}).providerId||"unknown"}); user=u; route(); }); });
     return true;
   }catch(e){ console.error(e); fb=null; return false; }
 }
