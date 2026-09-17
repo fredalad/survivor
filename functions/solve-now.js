@@ -4,7 +4,8 @@
 //   $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\Users\Nick\survivor\service-account.json"
 //   node functions\solve-now.js            re-solve from live lines now and write odds/2026/optimal
 //   node functions\solve-now.js --dry      show what would change, write nothing
-//   node functions\solve-now.js --seed     compare against the season-opening seed instead of the last solve
+//   node functions\solve-now.js --seed     compare against the season-opening seed instead of the last solve, and start
+//                                          the change history over (use once, to clean up after a bad solve)
 //
 // Uses the same optimal.js the Cloud Function uses, so the answer is identical to what a scheduled pass would write.
 const { initializeApp, applicationDefault } = require("firebase-admin/app");
@@ -23,7 +24,7 @@ initializeApp({ credential: applicationDefault(), databaseURL: "https://survivor
   const current = args.has("--seed") ? SEED : { ...SEED, ...(prev.picks || {}) };
   const leg = optimal.currentLeg(games);
   const r = optimal.solve(games, current);
-  const now = Date.now(), changes = { ...(prev.changes || {}) }, moved = [];
+  const now = Date.now(), changes = args.has("--seed") ? {} : { ...(prev.changes || {}) }, moved = [];
   optimal.LEG_IDS.forEach((l) => {
     if (r.picks[l] !== current[l]) { changes[l] = { from: current[l] || null, to: r.picks[l] || null, at: now }; moved.push(`${l}: ${current[l] || "-"} -> ${r.picks[l] || "-"}`); }
   });
