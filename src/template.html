@@ -147,6 +147,7 @@ tr.focus td.team .team-cell{height:50px}
 .cell.used{color:var(--muted);text-decoration:line-through;opacity:.55}
 .cell.pick{background:var(--pick);box-shadow:inset 0 0 0 2px var(--pick-line);color:var(--ink);font-weight:500}
 .cell.pick::after{content:"";position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:var(--pick-line)}
+.cell.pick.moved::after{background:var(--accent);box-shadow:0 0 0 2px var(--surface)}
 .cell.won::before{content:"W";position:absolute;left:3px;top:0;font-size:9px;line-height:14px;font-weight:600;color:var(--good-ink)}
 .cell.lost::before{content:"L";position:absolute;left:3px;top:0;font-size:9px;line-height:14px;font-weight:600;color:var(--bad)}
 .cell .others{position:absolute;left:3px;bottom:3px;display:flex;gap:2px}
@@ -268,7 +269,7 @@ const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 const fmtD = d => { const [y,m,dd]=d.split("-"); return MON[+m-1]+" "+(+dd); };
 const isTG = g => g.w===12 && g.date<="2026-11-27";
 const isXM = g => g.w===16 && g.date<="2026-12-25";
-let GAMES=[], LEGS=[], TL={}, LIVE={};
+let GAMES=[], LEGS=[], TL={}, LIVE={}, OPT={};   // OPT = live Optimal solve: {picks, fixed, changes, updated}
 const LINES={at:BUILT_AT, live:false};
 const CHANGED=new Set();
 function buildModel(){
@@ -366,6 +367,14 @@ function togglePick(legId, team){
 }
 
 // ---------- derived ----------
+const WEEK_MS=7*86400000;
+function recentlyMoved(legId){ const c=OPT.changes&&OPT.changes[legId]; return !!(c && Date.now()-c.at<WEEK_MS); }
+function optimalNote(){
+  if(!OPT.updated) return "Reference sheet solved from the season-opening lines; it re-solves from live lines once lines stream in.";
+  const moved=LEGS.filter(l=>recentlyMoved(l.id)); const d=new Date(OPT.updated);
+  const when=d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):MON[d.getMonth()]+" "+d.getDate();
+  return "Re-solved from live lines "+when+(moved.length?" · changed this week: "+moved.map(l=>l.short+" "+esc(OPT.changes[l.id].from||"–")+"→"+esc(OPT.changes[l.id].to||"–")).join(", "):" · no changes this week")+". Legs already played stay fixed.";
+}
 function pathStats(p){
   const picks=p.picks||{}; let n=0, prod=1, weakest=null, w=0, l=0;
   LEGS.forEach(lg=>{ const t=picks[lg.id]; if(!t) return; const e=TL[t][lg.id]; if(!e) return; n++; prod*=e.p; if(!weakest||e.p<weakest.p) weakest={leg:lg,team:t,p:e.p}; if(e.won===true) w++; else if(e.won===false) l++; });
@@ -431,7 +440,7 @@ setInterval(updateLines, 30000);
 function renderBanner(){
   const el=document.getElementById("banner"); let h="";
   const dismiss='<span class="spacer"></span><button class="btn small" onclick="dismissBanner()">Got it</button>';
-  if(mode==="demo") h='<div class="banner"><b>Free preview.</b> This is the Optimal sheet, solved from the season-opening lines, shown against live odds. Buy a sheet to build your own plan and share it with your pool.<span class="spacer"></span><button class="btn small primary" onclick="paywall()">Buy a sheet · $'+APP.priceSheet+'</button><button class="btn small" onclick="openModal(\'signin\')">Sign in</button></div>';
+  if(mode==="demo") h='<div class="banner"><b>Free preview.</b> This is the Optimal sheet, re-solved from live lines every hour; legs already played stay as picked. Buy a sheet to build your own plan and share it with your pool.<span class="spacer"></span><button class="btn small primary" onclick="paywall()">Buy a sheet · $'+APP.priceSheet+'</button><button class="btn small" onclick="openModal(\'signin\')">Sign in</button></div>';
   else if(PARAMS.get("paid")==="path") h='<div class="banner">Payment received. '+(freeSlots().length?'Click <b>+ New sheet</b> to set it up.':'Your new sheet is being added…')+dismiss+'</div>';
   else if(PARAMS.get("paid")==="seats") h='<div class="banner">Seats added. Now invite people with <b>Share</b>.'+dismiss+'</div>';
   else if(mode==="board" && role==="owner" && !Object.keys(pool.team).length && !Object.keys(pool.invites).length && !nudgeDismissed()) h='<div class="banner"><b>Playing with a group?</b> Share your sheets and everyone sees every pick live. Each extra login is $'+APP.priceSeats+' for the season.<span class="spacer"></span><button class="btn small primary share" onclick="openModal(\'sheet\')">Share</button><button class="btn small" onclick="dismissNudge()">Not now</button></div>';
@@ -446,7 +455,7 @@ function renderPricing(){
   el.innerHTML='<h2>Pricing</h2><div class="cards"><div class="card"><div class="nm">Sheet · $'+APP.priceSheet+'</div><div class="meta">One full 20-leg plan for the '+SEASON+' season, with lines refreshed every 10 minutes. Running two entries? Buy two sheets.</div></div><div class="card"><div class="nm">Extra login · $'+APP.priceSeats+'</div><div class="meta">Add a friend to your pool. They see and edit every sheet you own, live. Add as many as you like, whenever you like.</div></div></div><p class="muted">One-time purchases, no subscription. Refund within 7 days if no picks have been made on the sheet. <a href="faq.html">FAQ</a> · <a href="terms.html">Terms &amp; privacy</a> · <a href="mailto:'+esc(APP.supportEmail)+'">'+esc(APP.supportEmail)+'</a></p>';
 }
 function renderPaths(){
-  let h = allPaths().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+(p.locked?" locked":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')" title="'+(p.locked?'Fixed reference sheet':'')+'"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span>'+(p.locked?'<span class="lock">fixed</span>':'')+'</button>'; }).join("");
+  let h = allPaths().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+(p.locked?" locked":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')" title="'+(p.locked?'Reference sheet, re-solved from live lines; played legs stay fixed':'')+'"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span>'+(p.locked?'<span class="lock">fixed</span>':'')+'</button>'; }).join("");
   const free=freeSlots().length;
   h += mode==="board" ? (free ? '<button class="ptab add" onclick="addPath()">+ New sheet <span class="cnt">'+free+' unused</span></button>' : '<button class="ptab add cta" onclick="openModal(\'buypath\')">+ New sheet · $'+APP.priceSheet+'</button>') : '<button class="ptab add cta" onclick="paywall()">+ Your own sheet · $'+APP.priceSheet+'</button>';
   document.getElementById("paths").innerHTML=h;
@@ -457,7 +466,7 @@ function renderSummary(){
   const weakest = s.weakest ? s.weakest.team+' '+pct(s.weakest.p)+' <span style="font-size:14px;color:var(--muted)">'+s.weakest.leg.label+'</span>' : '—';
   const record = (s.w+s.l) ? '<div class="stat"><div class="v '+(s.l?'out':'alive')+'">'+(s.l?'OUT':'ALIVE')+'</div><div class="l">'+s.w+'–'+s.l+' so far</div></div>' : '';
   const actions = p.locked
-    ? '<span class="l" style="flex-basis:100%">Fixed sheet from the season-opening lines. Duplicate it to edit.</span>'+(mode==="board"?'<button class="btn small" onclick="duplicatePath()">Duplicate</button>':'<button class="btn small primary" onclick="paywall()">Buy a sheet to edit</button>')
+    ? '<span class="l" style="flex-basis:100%">'+optimalNote()+' Duplicate it to edit.</span>'+(mode==="board"?'<button class="btn small" onclick="duplicatePath()">Duplicate</button>':'<button class="btn small primary" onclick="paywall()">Buy a sheet to edit</button>')
     : '<button class="btn small" onclick="renamePath()">Rename</button><button class="btn small" onclick="duplicatePath()">Duplicate</button><button class="btn small" onclick="clearPicks()">Clear picks</button><button class="btn small" onclick="deletePath()">Delete</button>';
   document.getElementById("summary").innerHTML =
     '<div class="stat"><div class="v num">'+s.n+'<span style="font-size:16px;color:var(--muted)"> / 20</span></div><div class="l">legs picked on '+esc(p.name)+'</div></div>'
@@ -500,7 +509,7 @@ function renderBoard(){
       if(!e){ h+='<td><span class="cell bye'+(focused?' x2':'')+'">bye</span></td>'; return; }
       const isPick=p.picks[l.id]===t; const isUsed=used&&used!==l.id;
       const oth=others.filter(o=>o.picks&&o.picks[l.id]===t);
-      const cls='cell'+(focused?' x2':'')+(e.p<0.5?' dog':'')+(isPick?' pick':'')+(isUsed?' used':'')+(l.kind?' hol'+(l.kind==='xm'?' x':''):'')+(CHANGED.has(t+"|"+l.id)?' chg':'')+(e.won===true?' won':e.won===false?' lost':'');
+      const cls='cell'+(focused?' x2':'')+(e.p<0.5?' dog':'')+(isPick?' pick':'')+(isPick&&p.id==="optimal"&&recentlyMoved(l.id)?' moved':'')+(isUsed?' used':'')+(l.kind?' hol'+(l.kind==='xm'?' x':''):'')+(CHANGED.has(t+"|"+l.id)?' chg':'')+(e.won===true?' won':e.won===false?' lost':'');
       const oppLine = focused ? '<span class="opp">'+(e.home?'vs ':'@ ')+e.opp+(e.g.neutral?'*':'')+'</span>' : '';
       h+='<td><button class="'+cls+'" style="--s:'+strength(e.p).toFixed(0)+'" onclick="togglePick(\''+l.id+'\',\''+t+'\')" title="'+t+' '+(e.home?'vs':'@')+' '+e.opp+' · '+e.g.day+' '+e.g.time+' · '+(e.home?fmtML(e.g.mlHome):fmtML(e.g.mlAway))+' · '+pct(e.p)+(e.g.status!=="pre"?' · '+(e.g.done?'Final':'Live')+' '+e.g.as+'–'+e.g.hs:'')+'">'+oppLine+'<span>'+Math.round(e.p*100)+'</span>'+(oth.length?'<span class="others">'+oth.map(o=>'<i style="background:'+colorOf(o)+'" title="'+esc(o.name)+'"></i>').join('')+'</span>':'')+'</button></td>';
     });
@@ -745,6 +754,7 @@ function bootOdds(){
   db.ref("odds/"+SEASON).on("value", s=>{
     const v=s.val(); if(!v || !v.games) return;
     LIVE=v.games; LINES.at=(v.meta&&v.meta.updated)||Date.now(); LINES.live=true;
+    if(v.optimal && v.optimal.picks){ OPT=v.optimal; const o=staticById("optimal"); if(o) o.picks={...v.optimal.picks}; }
     buildModel(); render();
     if(CHANGED.size) setTimeout(()=>CHANGED.clear(), 3000);
   }, err=>{ console.warn("live lines unavailable", err&&err.code); });

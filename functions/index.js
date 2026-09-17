@@ -2,7 +2,8 @@
 //   createCheckout  (callable)  - starts a Stripe Checkout for paths ($10 each) or for pool seats ($5 each)
 //   stripeWebhook   (https)     - fulfils paid checkouts: adds path slots (and the board on first purchase) / adds seats
 //   invite          (callable)  - owner invites an email to their pool; the server enforces the seat count
-//   fetchOdds       (schedule)  - every 10 minutes, DraftKings lines + scores from ESPN -> odds/2026
+//   fetchOdds       (schedule)  - every 10 minutes, DraftKings lines + scores from ESPN -> odds/2026; on the hourly
+//                                 all-weeks pass also re-solves the Optimal reference path -> odds/2026/optimal
 //   refreshOdds     (https)     - manual odds refresh, guarded by ODDS_REFRESH_KEY
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -12,6 +13,8 @@ const { initializeApp } = require("firebase-admin/app");
 const { getDatabase } = require("firebase-admin/database");
 const crypto = require("crypto");
 const Stripe = require("stripe");
+const optimal = require("./optimal");
+const OPTIMAL_SEED = require("./optimal-seed.json");   // the season-opening solve, used until the first live solve
 
 initializeApp({ databaseURL: "https://survivor-2026-34ce6-default-rtdb.firebaseio.com" });
 setGlobalOptions({ region: "us-central1", maxInstances: 5 });
@@ -269,8 +272,28 @@ async function refreshOdds(all) {
   if (!done.length) throw new Error(`ESPN: every week failed: ${JSON.stringify(failed)}`);
   updates.meta = { updated: Date.now(), source: "DraftKings via ESPN", season: SEASON, weeks: done, currentWeek: cur,
     ...(done.length < weeks.length ? { failed } : {}) };
+  let opt = null;
+  if (all && done.length === weeks.length) opt = await resolveOptimal(existing, updates);
   await db().ref(`odds/${SEASON}`).update(updates);
-  return { weeks: done, failed, games: n, currentWeek: cur };
+  return { weeks: done, failed, games: n, currentWeek: cur, ...(opt ? { optimalChanged: opt } : {}) };
+}
+
+// Re-solve the Optimal reference path whenever the whole season's lines were just refreshed. Legs whose pick has
+// kicked off stay fixed (see optimal.js). Writes odds/{season}/optimal = { picks, fixed, prob, updated, changes },
+// where changes keeps the most recent change per leg so the page can flag what moved this week.
+async function resolveOptimal(existing, updates) {
+  const games = { ...existing };
+  Object.keys(updates).forEach((k) => { if (k.startsWith("games/")) games[k.slice(6)] = updates[k]; });
+  const prev = (await db().ref(`odds/${SEASON}/optimal`).get()).val() || {};
+  const current = prev.picks || OPTIMAL_SEED;
+  const r = optimal.solve(games, current);
+  const now = Date.now(), changes = { ...(prev.changes || {}) }, moved = [];
+  optimal.LEG_IDS.forEach((l) => {
+    if (r.picks[l] !== current[l]) { changes[l] = { from: current[l] || null, to: r.picks[l] || null, at: now }; moved.push(`${l}:${current[l] || "-"}>${r.picks[l] || "-"}`); }
+  });
+  updates.optimal = { picks: r.picks, fixed: r.fixed, prob: r.prob, updated: now, changes };
+  if (moved.length) console.log("optimal re-solved, changed", moved.join(" "));
+  return moved;
 }
 
 exports.fetchOdds = onSchedule({ schedule: "every 10 minutes", timeZone: "America/New_York", timeoutSeconds: 120 }, async () => {
