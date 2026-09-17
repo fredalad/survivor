@@ -151,10 +151,11 @@ everyone; that is a safe state and it is not needed.
    and all four request styles 403, move the fetcher to GitHub Actions. Consider an alert on a stale
    `odds/2026/meta.updated` so the next outage is noticed before Sunday.
 2. Stripe account and product setup — status and naming are tracked in the Stripe dashboard, not here.
-3. End-to-end seat test: buy a seat, invite a second Google account, join via the link, confirm it sees the
-   sheets, then refund.
-4. Sign-in email still comes from the default Firebase sender and lands in spam. Fix: Authentication → Templates →
-   customize sender domain, plus DNS at GoDaddy. Google sign-in is the workaround, listed first in the FAQ.
+3. Seat sharing verified end to end on 2026-09-17 with comped seats (`admin.py add-seats`), a second account
+   joining via the invite link, and live pick sync both ways. Not yet verified: the Stripe webhook granting a seat
+   after a real $5 purchase. `admin.py` has no `remove-seats`; comped seats are permanent.
+4. Sign-in email fixed 2026-09-17: public-facing name "Survivor Sheets" (Project settings → General), sender
+   domain survivorsheets.com verified (SPF TXT, firebase= TXT, two DKIM CNAMEs at GoDaddy), sender name set.
 5. Optimal path is static. Idea: re-solve nightly from live lines and show "changed since yesterday" — past legs
    must stay fixed.
 6. Old GitHub Pages board keeps working without live odds. Migrate with `tools/admin.py claim-board --board
