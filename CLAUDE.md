@@ -181,8 +181,12 @@ everyone; that is a safe state and it is not needed.
    after a real $5 purchase. `admin.py` has no `remove-seats`; comped seats are permanent.
 4. Sign-in email fixed 2026-09-17: public-facing name "Survivor Sheets" (Project settings → General), sender
    domain survivorsheets.com verified (SPF TXT, firebase= TXT, two DKIM CNAMEs at GoDaddy), sender name set.
-5. Optimal re-solve shipped 2026-09-17 (decision 19). Every solve logs `optimal re-solved (hourly|final for wN)`
-   with the moved legs, and `odds refreshed {...}` carries `optimalChanged: {why, moved}` on those runs.
+5. Optimal re-solve shipped 2026-09-17 (decision 19) and verified the same night: hourly solves 17:03–00:03Z,
+   `final for w2` at 00:23Z (eight minutes after TNF kickoff), then silence. Every solve logs `optimal re-solved
+   (hourly|final for wN)` with the moved legs; `odds refreshed {...}` carries `optimalChanged` on those runs. Search
+   them in Cloud Logs Explorer with `resource.labels.service_name="fetchodds" textPayload:"optimal"` — the
+   `firebase functions:log` CLI returns arbitrary windows and its output does not pipe reliably in PowerShell.
+   Still to observe once: the resume to hourly on the first pass after Monday night's game is final.
 6. Old GitHub Pages board keeps working without live odds. Migrate with `tools/admin.py claim-board --board
    FcNiUIfqtOT6tBjo --email <owner>` when Nick wants, then remove the rules exception.
 
