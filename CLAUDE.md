@@ -84,6 +84,7 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     to `feedback/{pushId}` = `{text, at, mode, page, ua, uid?, email?}`; rules allow create-only with strict shape
     validation and no client reads. Read them with `python tools\admin.py feedback` (`--delete ID` to clear one). No
     notification is sent — check it weekly, or wire a Cloud Function trigger to a Slack/Discord webhook later.
+    Verified live 2026-09-18 for both signed-in and anonymous submissions.
 20. **Analytics** = GA4 through the Firebase SDK (`firebase.analytics()`), enabled 2026-09-17. The SDK fetches the
     measurement id itself once Google Analytics is enabled on the Firebase project, so nothing is in the config.
     Events: view_mode, signin_start, login, buy_prompt, begin_checkout, purchase_return, invite_sent,
