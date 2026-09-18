@@ -101,7 +101,8 @@ a.card:hover,button.card:hover{border-color:var(--ink)}
 .modal{background:var(--surface);color:var(--ink);border-radius:10px;max-width:540px;width:100%;padding:20px 22px;box-shadow:var(--shadow);max-height:90vh;overflow:auto}
 .modal-foot{text-align:right;margin-top:14px}
 .field{display:flex;gap:8px;margin:8px 0}
-.field input,.field select{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}
+.field input,.field select,.field textarea{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}
+.field textarea{min-height:110px;resize:vertical;line-height:1.4}
 .list{margin:6px 0 12px;padding:0;list-style:none}
 .list li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
 .or{text-align:center;color:var(--muted);font-size:12px;margin:10px 0}
@@ -405,7 +406,7 @@ function render(){ trackMode();
   document.getElementById("v-weeks").classList.toggle("on", state.view==="weeks");
   document.getElementById("view").innerHTML = state.view==="board" ? renderBoard() : renderWeeks();
   document.documentElement.style.setProperty("--hdr", document.querySelector(".top").offsetHeight+"px");
-  document.getElementById("rules").innerHTML = '<b>How it works.</b> One team per leg, and each team can be used once per sheet across all 20 legs. Lines come from a major sportsbook'+(LINES.live?' and refresh every 10 minutes':', as of '+fmtD(new Date(LINES.at).toISOString().slice(0,10)))+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) are the preseason list from the pick sheet. Kickoffs marked TBD have not been set by the league. <a href="faq.html">Questions? Read the FAQ.</a> · <a href="terms.html">Terms &amp; privacy</a>';
+  document.getElementById("rules").innerHTML = '<b>How it works.</b> One team per leg, and each team can be used once per sheet across all 20 legs. Lines come from a major sportsbook'+(LINES.live?' and refresh every 10 minutes':', as of '+fmtD(new Date(LINES.at).toISOString().slice(0,10)))+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) are the preseason list from the pick sheet. Kickoffs marked TBD have not been set by the league. <a href="faq.html">Questions? Read the FAQ.</a> · <a href="#" onclick="openModal(\'idea\');return false">Suggest a feature</a> · <a href="terms.html">Terms &amp; privacy</a>';
   renderPricing();
 }
 function renderHeader(){
@@ -586,13 +587,29 @@ function closeModal(){ modal=null; renderModal(); }
 function refreshModal(){ if(modal==="sheet"||modal==="pool") renderModal(); }
 function renderModal(){
   const r=document.getElementById("modal-root"); if(!modal){ r.innerHTML=""; return; }
-  const h = modal==="signin" ? signInHtml() : modal==="buy" ? buyHtml() : modal==="buypath" ? buyPathHtml() : modal==="pool" ? '<h2>Share your sheets</h2>'+poolSection() : sheetHtml();
+  const h = modal==="signin" ? signInHtml() : modal==="buy" ? buyHtml() : modal==="buypath" ? buyPathHtml() : modal==="pool" ? '<h2>Share your sheets</h2>'+poolSection() : modal==="idea" ? ideaHtml() : sheetHtml();
   r.innerHTML='<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">'+h+'<div class="modal-foot"><button class="btn small" onclick="closeModal()">Close</button></div></div></div>';
-  const f=r.querySelector("input:not([readonly])"); if(f) f.focus();
+  const f=r.querySelector("textarea, input:not([readonly])"); if(f) f.focus();
 }
 function signInHtml(){
   let em=""; try{ em=localStorage.getItem(LS_EMAIL)||""; }catch(e){}
   return '<h2>Sign in</h2><p class="muted">No password. We email you a link that signs you in on this device.</p><form onsubmit="return sendLink(event)"><div class="field"><input id="si-email" type="email" required placeholder="you@example.com" value="'+esc(em)+'"><button class="btn primary" type="submit">Email me a link</button></div></form><p class="muted" id="si-msg"></p><div class="or">or</div><button class="btn" onclick="googleSignIn()">Continue with Google</button>';
+}
+function ideaHtml(){
+  return '<h2>Suggest a feature</h2><p class="muted">What would make this more useful for you or your pool? Ideas, gripes, missing stats, anything. It goes straight to the person who builds this.</p><form onsubmit="return submitIdea(event)"><div class="field"><textarea id="idea-text" maxlength="1000" required placeholder="It would be great if…"></textarea></div>'+(user?'<p class="muted" style="font-size:12px">Sent as '+esc(user.email||"")+' so we can follow up.</p>':'<div class="field"><input id="idea-email" type="email" placeholder="Your email (optional, so we can follow up)"></div>')+'<button class="btn primary" type="submit">Send</button></form><p class="muted" id="idea-msg"></p>';
+}
+async function submitIdea(ev){
+  ev.preventDefault();
+  const text=(document.getElementById("idea-text").value||"").trim(); const msg=document.getElementById("idea-msg");
+  if(text.length<3){ msg.textContent="Say a little more than that."; return false; }
+  if(!db){ location.href="mailto:"+APP.supportEmail+"?subject=Feature%20request&body="+encodeURIComponent(text); return false; }
+  const emailEl=document.getElementById("idea-email");
+  const rec={text, at:Date.now(), mode, page:location.pathname+location.search, ua:navigator.userAgent.slice(0,200)};
+  if(user){ rec.uid=user.uid; rec.email=user.email||null; } else if(emailEl && emailEl.value.trim()) rec.email=emailEl.value.trim().toLowerCase();
+  if(rec.email==null) delete rec.email;
+  try{ await db.ref("feedback").push(rec); track("idea_sent", {signed_in: !!user}); closeModal(); toast("Thanks — got it."); }
+  catch(e){ msg.textContent="Couldn't send ("+(e.code||"error")+"). Email "+APP.supportEmail+" instead."; }
+  return false;
 }
 function buyHtml(){
   return '<h2>Your own sheet</h2><div class="price">$'+APP.priceSheet+' <span class="muted" style="font-size:14px;font-weight:400">per sheet, one time, for the '+SEASON+' season</span></div><ul class="bul"><li>A sheet is one full 20-leg plan, saved and synced live. Running two entries? Buy two sheets.</li><li>Live lines and win odds, refreshed every 10 minutes.</li><li>The Optimal sheet included as a starting point.</li><li>Share with your pool: each extra login is $'+APP.priceSeats+' and covers every sheet you own.</li></ul><p class="muted">Sign in first so the purchase is tied to your email. Checkout takes about a minute.</p><button class="btn primary" onclick="openModal(\'signin\')">Sign in to buy</button>';
@@ -780,4 +797,5 @@ function bootFirebase(){
 loadLocal();
 render();
 bootFirebase();
+if(PARAMS.has("idea")) openModal("idea");
 </script>

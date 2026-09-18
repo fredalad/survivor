@@ -79,6 +79,11 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     the last 7 days and a "Re-solved … changed this week: … Held until Week N is done." line on the Optimal sheet.
     Until the first live solve the page uses the baked seed. `tools/fetch_odds.py --push` does not re-solve;
     `node functions\solve-now.js` does (ignores the cadence gate; `--dry` previews).
+21. **Feature requests** (2026-09-18): "Suggest a feature" link in the board footer and on the FAQ (`/?idea` opens the
+    modal). Anyone can send — signed-in users are tagged with uid/email, visitors may leave an email. Written client-side
+    to `feedback/{pushId}` = `{text, at, mode, page, ua, uid?, email?}`; rules allow create-only with strict shape
+    validation and no client reads. Read them with `python tools\admin.py feedback` (`--delete ID` to clear one). No
+    notification is sent — check it weekly, or wire a Cloud Function trigger to a Slack/Discord webhook later.
 20. **Analytics** = GA4 through the Firebase SDK (`firebase.analytics()`), enabled 2026-09-17. The SDK fetches the
     measurement id itself once Google Analytics is enabled on the Firebase project, so nothing is in the config.
     Events: view_mode, signin_start, login, buy_prompt, begin_checkout, purchase_return, invite_sent,
@@ -98,7 +103,7 @@ database.rules.json    odds public-read; boards readable/writable by owner + own
                        users/{uid} readable by self; slots readable by self + team; server-only writes for
                        slots, seats, invites-create, purchases; legacy board FcNiUIfqtOT6tBjo fully open
 tools/fetch_odds.py    same ESPN mapping as the function; refreshes src/games.json; --push writes odds/2026
-tools/admin.py         claim-board, grant-paths, add-seats, refund-check, list-boards (service-account key)
+tools/admin.py         claim-board, grant-paths, add-seats, refund-check, list-boards, feedback (service-account key)
 functions/solve-now.js run the Optimal solve by hand from Nick's machine (--dry, --seed); same code as the function
 ```
 
@@ -106,7 +111,8 @@ Page modes: `demo` (signed out, free preview) → `home` (only when >1 destinati
 (invited / not shared). Routing is in `route()` near the bottom of `src/template.html`.
 
 Database shape: `users/{uid}/{email,boards,slots,seats,team,invites,memberOf}`, `boards/{id}/{meta,paths}`,
-`odds/2026/{meta,games}` (game key `{week}_{AWAY}_{HOME}` with ESPN abbreviations), `purchases/{stripeSessionId}`.
+`odds/2026/{meta,games,optimal}` (game key `{week}_{AWAY}_{HOME}` with ESPN abbreviations), `purchases/{stripeSessionId}`,
+`feedback/{pushId}` (feature requests, write-only from clients).
 Email keys replace `.` with `,`.
 
 ## How odds and results reach the board

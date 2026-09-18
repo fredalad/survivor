@@ -8,6 +8,14 @@
       ".read": false,
       ".write": false
     },
+    "feedback": {
+      ".read": false,
+      "$id": {
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['text', 'at']) && newData.child('text').isString() && newData.child('text').val().length >= 3 && newData.child('text').val().length <= 1000 && newData.child('at').isNumber() && (!newData.child('uid').exists() || (auth != null && newData.child('uid').val() == auth.uid)) && (!newData.child('email').exists() || newData.child('email').isString()) && (!newData.child('mode').exists() || newData.child('mode').isString()) && (!newData.child('page').exists() || newData.child('page').isString()) && (!newData.child('ua').exists() || newData.child('ua').isString())",
+        "$other": { ".validate": "$other == 'text' || $other == 'at' || $other == 'uid' || $other == 'email' || $other == 'mode' || $other == 'page' || $other == 'ua'" }
+      }
+    },
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",

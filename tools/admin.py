@@ -12,6 +12,8 @@
   python tools/admin.py refund-check --board ID
         how many picks exist on the board, plus the purchase record; use before refunding in Stripe
   python tools/admin.py list-boards
+  python tools/admin.py feedback [--delete ID]
+        feature requests sent from the board's "Suggest a feature" form (feedback/{id} in the database)
 """
 import argparse, json, os, secrets, time
 
@@ -87,6 +89,19 @@ def cmd_list(a):
         print(b, "|", m.get("name"), "|", m.get("ownerEmail"), "| paths", len(v.get("paths") or {}))
 
 
+def cmd_feedback(a):
+    import datetime as dt
+    items = sorted((db.reference("feedback").get() or {}).items(), key=lambda kv: kv[1].get("at", 0))
+    if not items:
+        print("no feedback yet"); return
+    for k, v in items:
+        when = dt.datetime.fromtimestamp(v.get("at", 0) / 1000).strftime("%Y-%m-%d %H:%M")
+        who = v.get("email") or ("uid " + v["uid"] if v.get("uid") else "anonymous")
+        print("%s  %s  [%s]  %s\n  %s\n" % (when, who, v.get("mode", "?"), k, v.get("text", "").replace("\n", "\n  ")))
+    if a.delete:
+        db.reference("feedback/" + a.delete).delete(); print("deleted", a.delete)
+
+
 ap = argparse.ArgumentParser()
 sub = ap.add_subparsers(dest="cmd", required=True)
 p = sub.add_parser("claim-board"); p.add_argument("--board", required=True); p.add_argument("--email", required=True); p.add_argument("--name"); p.add_argument("--seats", type=int, default=0); p.add_argument("--force", action="store_true"); p.set_defaults(f=cmd_claim)
@@ -94,4 +109,5 @@ p = sub.add_parser("grant-paths"); p.add_argument("--email", required=True); p.a
 p = sub.add_parser("add-seats"); p.add_argument("--email", required=True); p.add_argument("--n", type=int, required=True); p.set_defaults(f=cmd_seats)
 p = sub.add_parser("refund-check"); p.add_argument("--board", required=True); p.set_defaults(f=cmd_refund)
 p = sub.add_parser("list-boards"); p.set_defaults(f=cmd_list)
+p = sub.add_parser("feedback"); p.add_argument("--delete", help="feedback id to remove after reading"); p.set_defaults(f=cmd_feedback)
 a = ap.parse_args(); a.f(a)
