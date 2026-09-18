@@ -55,7 +55,10 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     invite link (`/?join=<ownerUid>`) both invites new people and lets existing members back in all season.
 14. Domain survivorsheets.com (GoDaddy, no email or extras) on Firebase Hosting; bare and www both serve over HTTPS.
     `authDomain` is `survivorsheets.com` so Google sign-in shows the real domain.
-15. Support email is set in `app-config.json`. Forwarding from support@survivorsheets.com was deferred.
+15. Support email is `support@survivorsheets.com` (set in `app-config.json`), forwarded to Nick's Gmail by ImprovMX
+    (free tier): two MX records at GoDaddy plus `include:spf.improvmx.com` merged into the one existing SPF TXT — a
+    domain may have only one SPF record, and the Firebase sign-in mail depends on it too. Replies from Gmail show
+    the Gmail address; sending as support@ needs a paid SMTP plan.
 16. Stripe runs in live mode; no test mode was used.
 17. Product name "Survivor Sheets", not "Circa Survivor" (Circa owns that name). Terms say we are not affiliated with
     Circa, the NFL, ESPN or DraftKings and take no wagers.
