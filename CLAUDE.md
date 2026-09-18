@@ -72,7 +72,7 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     until every game in the leg is final (after Monday night), when hourly solving resumes for the next leg. A leg
     whose current pick has kicked off is held and its team consumed; open legs only consider teams whose game is
     still `pre`. Result at `odds/2026/optimal` = `{picks, fixed, prob, updated, changes, lockedLeg}`;
-    `changes[leg] = {from, to, at}` keeps the latest change per leg; the page shows a gold dot for legs changed in
+    `changes[leg] = {from, to, at}` keeps the latest change per leg; the page shows a small "new" tag for legs changed in
     the last 7 days and a "Re-solved … changed this week: … Held until Week N is done." line on the Optimal sheet.
     Until the first live solve the page uses the baked seed. `tools/fetch_odds.py --push` does not re-solve;
     `node functions\solve-now.js` does (ignores the cadence gate; `--dry` previews).
