@@ -62,8 +62,8 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     secret and the domain verified in Resend (records on the `send.` subdomain and `resend._domainkey`, so no clash
     with the root SPF). If the secret is empty the invite still succeeds and the function logs `mail skipped`; the
     client toast says whether the email went out (`emailed` in the response).
-22. **The free Optimal preview ends after Week 4** (announced 2026-09-19 in the FAQ only; Nick chose not to mention it
-    on the preview banner yet). Once Week 4 has completed (Monday night, 2026-10-05), unpaid visitors should no longer
+22. **The free Optimal preview ends after Week 4** (announced 2026-09-19 in the FAQ, plus a quiet one-line strip under the
+    preview banner — `WEEK4_NOTE` in `src/template.html`, set false to drop it). Once Week 4 has completed (Monday night, 2026-10-05), unpaid visitors should no longer
     see the Optimal sheet; it stays included with every paid sheet. **Enforcement is not built yet, on purpose** — Nick
     said not to build the gate yet. Build it when he asks, before Oct 5.
 14. Domain survivorsheets.com (GoDaddy, no email or extras) on Firebase Hosting; bare and www both serve over HTTPS.
