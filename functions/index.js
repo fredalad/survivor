@@ -131,6 +131,9 @@ async function fulfil(s) {
 const emailKey = (e) => String(e || "").trim().toLowerCase().replace(/\./g, ",");
 // ---------------------------------------------------------------- email (Resend, from the verified domain)
 const MAIL_FROM = "Survivor Sheets <invites@survivorsheets.com>";
+// Reply-To stays on our domain: a free-mail reply-to under a domain From is a strong spam signal (SpamAssassin
+// FREEMAIL_FORGED_REPLYTO, -2.5). The owner's address goes in the body instead.
+const MAIL_REPLY_TO = "support@survivorsheets.com";
 async function sendMail(msg) {
   const key = RESEND_API_KEY.value();
   if (!key) { console.warn("mail skipped: RESEND_API_KEY not set"); return false; }
@@ -151,15 +154,15 @@ Survivor Sheets is a planner for the Circa Survivor contest: every team, every l
 Join here (sign in with this address, ${to}):
 ${joinUrl}
 
-The link keeps working all season. Questions? Reply to this email and it goes to ${first}.`;
+The link keeps working all season. Questions? Email ${first} at ${who}.`;
   const html = `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#141920">
 <p style="font-size:22px;font-weight:700;margin:0 0 6px">${escapeHtml(who)} invited you to their pool</p>
 <p style="color:#5b6470;margin:0 0 18px">Survivor Sheets · pick planner for the Circa Survivor contest</p>
 <p>Every team, every leg, live win odds, one shared board. Everyone in the pool sees and edits every sheet ${escapeHtml(first)} owns, live.</p>
 <p style="margin:22px 0"><a href="${joinUrl}" style="background:#141920;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;display:inline-block">Join ${escapeHtml(first)}'s pool</a></p>
-<p style="color:#5b6470;font-size:13px">Sign in with <b>${escapeHtml(to)}</b> — that's the address ${escapeHtml(first)} invited. The link keeps working all season. Questions? Reply to this email and it goes straight to ${escapeHtml(first)}.</p>
+<p style="color:#5b6470;font-size:13px">Sign in with <b>${escapeHtml(to)}</b> — that's the address ${escapeHtml(first)} invited. The link keeps working all season. Questions? Email ${escapeHtml(first)} at ${escapeHtml(who)}.</p>
 </div>`;
-  return { to, subject: `${first} invited you to Survivor Sheets`, text, html, reply_to: ownerEmail || undefined };
+  return { to, subject: `${first} invited you to Survivor Sheets`, text, html, reply_to: MAIL_REPLY_TO };
 }
 
 exports.invite = onCall({ secrets: [RESEND_API_KEY] }, async (req) => {

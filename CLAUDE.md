@@ -58,7 +58,7 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     Join, revoke and the owner all clear the index entry. Rules: read by matching email only; delete-only writes by
     the owner or the invitee; creation is server-side only.
     **Invitees are emailed** (2026-09-19): `invite` sends "<owner> invited you to Survivor Sheets" with the join link
-    via Resend (free tier, 3k/month) from `invites@survivorsheets.com`, reply-to the owner. Needs the `RESEND_API_KEY`
+    via Resend (free tier, 3k/month) from `invites@survivorsheets.com`, reply-to `support@` (a Gmail reply-to under a domain From cost 2.75 SpamAssassin points; the owner's address is in the body instead). Needs the `RESEND_API_KEY`
     secret and the domain verified in Resend (records on the `send.` subdomain and `resend._domainkey`, so no clash
     with the root SPF). If the secret is empty the invite still succeeds and the function logs `mail skipped`; the
     client toast says whether the email went out (`emailed` in the response).
@@ -170,6 +170,9 @@ everyone; that is a safe state and it is not needed.
   line freeze existed and ESPN returns no odds for finished games. The page falls back to the baked lines so the
   board looks right, but anything server-side must never assume a played game has a line — the first Optimal solve
   dropped Week 1 for exactly that reason and reused JAX in Week 12. Fixed legs are now decided from status alone.
+* Deliverability, measured with mail-tester.com on 2026-09-19: SPF/DKIM/DMARC all pass. The domain is new (`FROM_FMBLA_NEWDOM14`,
+  −1 until it is two weeks old) and new-domain reputation builds only with steady sending. `_dmarc` TXT is `v=DMARC1; p=none;
+  adkim=r; aspf=r`; Resend click/open tracking is off. Never put a free-mail address in Reply-To.
 * Any flow that leaves the page and comes back (email-link sign-in, Stripe checkout) must carry the query string
   it started with. The email-link return URL silently dropped `?join=` for two days; test every such flow with a
   non-Google account, because Google popup sign-in never leaves the page and hides this class of bug.
