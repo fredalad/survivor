@@ -172,7 +172,9 @@ everyone; that is a safe state and it is not needed.
   dropped Week 1 for exactly that reason and reused JAX in Week 12. Fixed legs are now decided from status alone.
 * Deliverability, measured with mail-tester.com on 2026-09-19: SPF/DKIM/DMARC all pass. The domain is new (`FROM_FMBLA_NEWDOM14`,
   −1 until it is two weeks old) and new-domain reputation builds only with steady sending. `_dmarc` TXT is `v=DMARC1; p=none;
-  adkim=r; aspf=r`; Resend click/open tracking is off. Never put a free-mail address in Reply-To.
+  adkim=r; aspf=r`; Resend click/open tracking is off. Never put a free-mail address in Reply-To. After the
+  fixes: 9.1/10, Gmail inbox, Yahoo still spam (domain age; Yahoo weights history, Gmail weights auth/content).
+  Re-test after 2026-09-24; if Yahoo still files it, move DMARC to `p=quarantine`.
 * Any flow that leaves the page and comes back (email-link sign-in, Stripe checkout) must carry the query string
   it started with. The email-link return URL silently dropped `?join=` for two days; test every such flow with a
   non-Google account, because Google popup sign-in never leaves the page and hides this class of bug.
