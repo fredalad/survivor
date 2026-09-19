@@ -7,3 +7,4 @@ functions/*.log
 service-account*.json
 odds.json
 .firebase/
+.venv/

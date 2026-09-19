@@ -180,6 +180,11 @@ everyone; that is a safe state and it is not needed.
 
   `public/` is committed, so a deploy does not need `python build.py` unless `src/` changed without a rebuild.
 
+  On Nick's Mac the same tools run from zsh: `source .venv/bin/activate` first (Homebrew Python refuses global
+  pip installs; the venv holds firebase-admin), `export GOOGLE_APPLICATION_CREDENTIALS="$HOME/survivor/service-account.json"`,
+  `python tools/admin.py …`, `node functions/solve-now.js …`. The Mac has its own service-account key (a second key
+  on the same service account), not a copy of the PC's.
+
 ## Open items
 
 1. `fetchOdds` is healthy again as of 2026-09-15 (writes every 10 minutes, `failed: {}`). If it goes dark again
