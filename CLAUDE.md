@@ -160,6 +160,9 @@ everyone; that is a safe state and it is not needed.
   line freeze existed and ESPN returns no odds for finished games. The page falls back to the baked lines so the
   board looks right, but anything server-side must never assume a played game has a line — the first Optimal solve
   dropped Week 1 for exactly that reason and reused JAX in Week 12. Fixed legs are now decided from status alone.
+* Any flow that leaves the page and comes back (email-link sign-in, Stripe checkout) must carry the query string
+  it started with. The email-link return URL silently dropped `?join=` for two days; test every such flow with a
+  non-Google account, because Google popup sign-in never leaves the page and hides this class of bug.
 * Chrome keeps a "Not secure" flag for the whole browser session after a certificate warning; restart the browser.
 * The Firebase custom-domain wizard's redirect checkbox is easy to get backwards. Both hosts are served sites.
 
@@ -191,9 +194,12 @@ everyone; that is a safe state and it is not needed.
    and all four request styles 403, move the fetcher to GitHub Actions. Consider an alert on a stale
    `odds/2026/meta.updated` so the next outage is noticed before Sunday.
 2. Stripe account and product setup — status and naming are tracked in the Stripe dashboard, not here.
-3. Seat sharing verified end to end on 2026-09-17 with comped seats (`admin.py add-seats`), a second account
-   joining via the invite link, and live pick sync both ways. Not yet verified: the Stripe webhook granting a seat
-   after a real $5 purchase. `admin.py` has no `remove-seats`; comped seats are permanent.
+3. Seats: the Stripe webhook seat branch is verified (real $5 purchase 2026-09-19, `purchases/` record, seats
+   0→1). The 2026-09-17 "end-to-end" share test was NOT a real join: the invitee signed in by email link and the
+   sign-in email's return URL dropped `?join=`, so the invite was never seen (fixed 2026-09-19: the return URL keeps
+   `join`/`b`, and a join link opened while signed out is remembered in localStorage and restored after sign-in).
+   Thursday's `add-seats --n 2` comp never landed either; cause unknown (PC history not checked). `admin.py` has no
+   `remove-seats`; comped seats are permanent. Re-verify the join with a non-Google invitee after this deploy.
 4. Sign-in email fixed 2026-09-17: public-facing name "Survivor Sheets" (Project settings → General), sender
    domain survivorsheets.com verified (SPF TXT, firebase= TXT, two DKIM CNAMEs at GoDaddy), sender name set.
 5. Optimal re-solve shipped 2026-09-17 (decision 19) and verified the same night: hourly solves 17:03–00:03Z,

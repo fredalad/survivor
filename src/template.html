@@ -262,7 +262,7 @@ STATIC_PATHS.forEach(sp=>{ sp.locked=true; });
 const PARAMS = new URLSearchParams(location.search);
 const BOARD_PARAM = PARAMS.get("b");
 const USE_EMU = PARAMS.has("emu");
-const LS_EMAIL="survivor-sheet:email", LS_INTENT="survivor-sheet:intent", LS_PREFS="survivor-sheet:prefs";
+const LS_EMAIL="survivor-sheet:email", LS_INTENT="survivor-sheet:intent", LS_PREFS="survivor-sheet:prefs", LS_JOIN="survivor-sheet:join";
 
 // ---------- game model (rebuilt whenever live lines arrive) ----------
 const impl = ml => ml < 0 ? (-ml)/((-ml)+100) : 100/(ml+100);
@@ -680,7 +680,9 @@ async function checkout(kind, boardId, qty){
 async function sendLink(ev){
   ev.preventDefault();
   const email=document.getElementById("si-email").value.trim(); const msg=document.getElementById("si-msg");
-  const url=location.origin+location.pathname+(BOARD_PARAM?"?b="+encodeURIComponent(BOARD_PARAM):"");
+  // Come back to the same place after the link is clicked: an invite link must keep its ?join, a board its ?b.
+  const keep=new URLSearchParams(); ["join","b"].forEach(k=>{ if(PARAMS.get(k)) keep.set(k,PARAMS.get(k)); });
+  const url=location.origin+location.pathname+(keep.toString()?"?"+keep.toString():"");
   try{ await auth.sendSignInLinkToEmail(email,{url, handleCodeInApp:true}); track("signin_start", {method:"email_link"}); try{ localStorage.setItem(LS_EMAIL,email); }catch(e){} msg.textContent="Link sent to "+email+". Open it on this device to finish signing in."; }
   catch(e){ msg.textContent="Could not send the link ("+(e.code||"error")+")."; }
   return false;
@@ -708,8 +710,10 @@ let trackedMode=null;
 function trackMode(){ if(mode!==trackedMode){ trackedMode=mode; track("view_mode", {mode, role: mode==="board"?role:undefined, gate: mode==="gate"?gateKind:undefined}); } }
 function route(){
   resetSession();
-  if(!user){ mode="demo"; board=null; render(); renderModal(); return; }
+  if(!user){ if(JOIN_PARAM){ try{ localStorage.setItem(LS_JOIN, JOIN_PARAM); }catch(e){} } mode="demo"; board=null; render(); renderModal(); return; }
   if(modal==="signin"||modal==="buy") closeModal();
+  if(!JOIN_PARAM && !BOARD_PARAM){ let j=null; try{ j=localStorage.getItem(LS_JOIN); localStorage.removeItem(LS_JOIN); }catch(e){} if(j && j!==user.uid){ location.replace(location.pathname+"?join="+encodeURIComponent(j)); return; } }
+  if(JOIN_PARAM){ try{ localStorage.removeItem(LS_JOIN); }catch(e){} }
   db.ref("users/"+user.uid+"/email").set(user.email||null).catch(()=>{});
   let intent=null; try{ intent=localStorage.getItem(LS_INTENT); localStorage.removeItem(LS_INTENT); }catch(e){}
   if(intent==="path" && !PARAMS.get("paid")) checkout("path");
