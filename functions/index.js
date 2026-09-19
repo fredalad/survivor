@@ -1,7 +1,8 @@
 // Cloud Functions for the paid survivor sheet.
 //   createCheckout  (callable)  - starts a Stripe Checkout for paths ($10 each) or for pool seats ($5 each)
 //   stripeWebhook   (https)     - fulfils paid checkouts: adds path slots (and the board on first purchase) / adds seats
-//   invite          (callable)  - owner invites an email to their pool; the server enforces the seat count
+//   invite          (callable)  - owner invites an email to their pool; the server enforces the seat count and
+//                                 emails the invitee a join link via Resend (RESEND_API_KEY secret)
 //   fetchOdds       (schedule)  - every 10 minutes, DraftKings lines + scores from ESPN -> odds/2026; also re-solves
 //                                 the Optimal reference path -> odds/2026/optimal (hourly until the week's first
 //                                 kickoff, once more right after it, then not until the week is done)
@@ -22,6 +23,7 @@ setGlobalOptions({ region: "us-central1", maxInstances: 5 });
 
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 const STRIPE_WEBHOOK_SECRET = defineSecret("STRIPE_WEBHOOK_SECRET");
+const RESEND_API_KEY = defineSecret("RESEND_API_KEY");   // invite emails; set with `firebase functions:secrets:set RESEND_API_KEY`
 const STRIPE_PRICE_SHEET = defineString("STRIPE_PRICE_SHEET");
 const STRIPE_PRICE_SEATS = defineString("STRIPE_PRICE_SEATS");
 const APP_URL = defineString("APP_URL", { default: "https://survivor-2026-34ce6.web.app" });
@@ -127,7 +129,40 @@ async function fulfil(s) {
 
 // ---------------------------------------------------------------- invites (server-side so the seat count is enforced)
 const emailKey = (e) => String(e || "").trim().toLowerCase().replace(/\./g, ",");
-exports.invite = onCall(async (req) => {
+// ---------------------------------------------------------------- email (Resend, from the verified domain)
+const MAIL_FROM = "Survivor Sheets <invites@survivorsheets.com>";
+async function sendMail(msg) {
+  const key = RESEND_API_KEY.value();
+  if (!key) { console.warn("mail skipped: RESEND_API_KEY not set"); return false; }
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: MAIL_FROM, ...msg }),
+  });
+  if (!r.ok) { console.error("mail failed", r.status, await r.text()); return false; }
+  return true;
+}
+const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function inviteEmail({ to, ownerEmail, joinUrl }) {
+  const who = ownerEmail || "A friend", first = who.replace(/@.*/, "");
+  const text = `${who} invited you to their Survivor Sheets pool.
+
+Survivor Sheets is a planner for the Circa Survivor contest: every team, every leg, live win odds, one shared board. Everyone in the pool sees and edits every sheet ${first} owns, live.
+
+Join here (sign in with this address, ${to}):
+${joinUrl}
+
+The link keeps working all season. Questions? Reply to this email and it goes to ${first}.`;
+  const html = `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#141920">
+<p style="font-size:22px;font-weight:700;margin:0 0 6px">${escapeHtml(who)} invited you to their pool</p>
+<p style="color:#5b6470;margin:0 0 18px">Survivor Sheets · pick planner for the Circa Survivor contest</p>
+<p>Every team, every leg, live win odds, one shared board. Everyone in the pool sees and edits every sheet ${escapeHtml(first)} owns, live.</p>
+<p style="margin:22px 0"><a href="${joinUrl}" style="background:#141920;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;display:inline-block">Join ${escapeHtml(first)}'s pool</a></p>
+<p style="color:#5b6470;font-size:13px">Sign in with <b>${escapeHtml(to)}</b> — that's the address ${escapeHtml(first)} invited. The link keeps working all season. Questions? Reply to this email and it goes straight to ${escapeHtml(first)}.</p>
+</div>`;
+  return { to, subject: `${first} invited you to Survivor Sheets`, text, html, reply_to: ownerEmail || undefined };
+}
+
+exports.invite = onCall({ secrets: [RESEND_API_KEY] }, async (req) => {
   if (!req.auth) throw new HttpsError("unauthenticated", "Sign in first.");
   const uid = req.auth.uid;
   const email = String((req.data && req.data.email) || "").trim().toLowerCase();
@@ -144,7 +179,9 @@ exports.invite = onCall(async (req) => {
   const rec = { email, at: Date.now(), ownerEmail: req.auth.token.email || null };
   // invitesByEmail lets the invitee find the invite by signing in, without the owner's link.
   await db().ref().update({ [`users/${uid}/invites/${key}`]: rec, [`invitesByEmail/${key}/${uid}`]: rec });
-  return { ok: true, left: seats - used - 1 };
+  const joinUrl = `${APP_URL.value().replace(/\/$/, "")}/?join=${encodeURIComponent(uid)}`;
+  const emailed = await sendMail(inviteEmail({ to: email, ownerEmail: rec.ownerEmail, joinUrl })).catch((e) => { console.error("mail error", e); return false; });
+  return { ok: true, left: seats - used - 1, emailed };
 });
 
 // ---------------------------------------------------------------- odds

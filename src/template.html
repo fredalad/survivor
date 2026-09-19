@@ -629,7 +629,7 @@ function poolSection(){
   h+='<div class="field"><input id="pl-email" type="email" placeholder="friend@example.com"'+(si.left?'':' disabled')+'><button class="btn primary" onclick="invite()"'+(si.left?'':' disabled')+'>Invite</button></div>';
   if(!si.left) h+='<p class="muted" style="margin:2px 0 0">Buy a seat first, then this unlocks.</p>';
   h+='<div class="step"><b>3</b><span>Send them your link</span></div>';
-  h+='<div class="field"><input readonly value="'+esc(inviteUrl())+'" onclick="this.select()"><button class="btn primary" onclick="copyText(inviteUrl())">Copy link</button></div><p class="muted" style="margin:2px 0 0">Text or email it, or just tell them to sign in at survivorsheets.com with the address you invited — the invite shows up on their home page either way. The link keeps working for them all season.</p>';
+  h+='<div class="field"><input readonly value="'+esc(inviteUrl())+'" onclick="this.select()"><button class="btn primary" onclick="copyText(inviteUrl())">Copy link</button></div><p class="muted" style="margin:2px 0 0">Invitees get this link by email the moment you invite them; text it too if you like. Or they can just sign in at survivorsheets.com with the address you invited and the invite shows up on their home page. The link keeps working all season.</p>';
   if(team.length) h+='<div class="eyebrow" style="margin-top:14px">Sharing with</div><ul class="list">'+team.map(([uid,x])=>'<li><span style="flex:1">'+esc(x.email||uid)+'</span><button class="btn small" onclick="removeMember(\''+uid+'\')">Remove</button></li>').join('')+'</ul>';
   if(inv.length) h+='<div class="eyebrow" style="margin-top:14px">Invited, not joined yet</div><ul class="list">'+inv.map(([k,x])=>'<li><span style="flex:1">'+esc(x.email||k)+'</span><button class="btn small" onclick="revokeInvite(\''+k+'\')">Revoke</button></li>').join('')+'</ul>';
   return h;
@@ -650,9 +650,9 @@ async function invite(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast("Enter a valid email address."); return; }
   if(seatInfo().left<=0){ toast("No seats left. Buy a seat first."); return; }
   try{
-    await firebase.functions().httpsCallable("invite")({email}); track("invite_sent");
+    const r=await firebase.functions().httpsCallable("invite")({email}); track("invite_sent", {emailed: !!(r.data&&r.data.emailed)});
     el.value=""; await copyText(inviteUrl());
-    toast("Invited "+email+". Your link is copied. Send it to them; they sign in with that address.");
+    toast(r.data&&r.data.emailed ? "Invited "+email+" — we emailed them your link. It's copied too, in case you want to text it." : "Invited "+email+". Your link is copied. Send it to them; they sign in with that address.");
   }catch(e){ toast(e.message||"Could not invite."); }
 }
 async function joinPool(owner){

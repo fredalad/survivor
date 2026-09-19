@@ -57,6 +57,11 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     readable by the invitee; the home page lists pending invites for the signed-in address with a Join button.
     Join, revoke and the owner all clear the index entry. Rules: read by matching email only; delete-only writes by
     the owner or the invitee; creation is server-side only.
+    **Invitees are emailed** (2026-09-19): `invite` sends "<owner> invited you to Survivor Sheets" with the join link
+    via Resend (free tier, 3k/month) from `invites@survivorsheets.com`, reply-to the owner. Needs the `RESEND_API_KEY`
+    secret and the domain verified in Resend (records on the `send.` subdomain and `resend._domainkey`, so no clash
+    with the root SPF). If the secret is empty the invite still succeeds and the function logs `mail skipped`; the
+    client toast says whether the email went out (`emailed` in the response).
 14. Domain survivorsheets.com (GoDaddy, no email or extras) on Firebase Hosting; bare and www both serve over HTTPS.
     `authDomain` is `survivorsheets.com` so Google sign-in shows the real domain.
 15. Support email is `support@survivorsheets.com` (set in `app-config.json`), forwarded to Nick's Gmail by ImprovMX
@@ -100,7 +105,7 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
 public/index.html      built by build.py from src/template.html + games.json + names.json + optimal.json
 public/faq.html        built from src/faq.html
 public/terms.html      built from src/legal.html
-functions/index.js     createCheckout (callable), stripeWebhook (https), invite (callable),
+functions/index.js     createCheckout (callable), stripeWebhook (https), invite (callable; emails the invitee via Resend),
                        fetchOdds (every 10 min; also re-solves Optimal per decision 19), refreshOdds (https, key-guarded;
                        effectively disabled, see below)
 functions/optimal.js   the Optimal solver (legs, candidate teams, Hungarian assignment); optimal-seed.json = opening solve
@@ -174,7 +179,7 @@ everyone; that is a safe state and it is not needed.
 ## What is NOT in the repo (on purpose)
 
 * `functions/.env` — Stripe price ids, `APP_URL`, `ODDS_REFRESH_KEY`. Recreate from `functions/.env.example`.
-* Stripe secret key and webhook signing secret — Google Secret Manager.
+* Stripe secret key, webhook signing secret and the Resend API key — Google Secret Manager.
 * Firebase CLI login and `service-account.json` (gitignored) — Nick's machine only.
 * **A cloud Claude session can edit, build and push but cannot deploy** and cannot reach ESPN or the database
   (its egress proxy blocks both). Deploys run from Nick's Windows machine in PowerShell:
