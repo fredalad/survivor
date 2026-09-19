@@ -8,6 +8,14 @@
       ".read": false,
       ".write": false
     },
+    "invitesByEmail": {
+      "$e": {
+        ".read": "auth != null && auth.token.email != null && $e == auth.token.email.toLowerCase().replace('.', ',')",
+        "$o": {
+          ".write": "auth != null && !newData.exists() && (auth.uid == $o || (auth.token.email != null && $e == auth.token.email.toLowerCase().replace('.', ',')))"
+        }
+      }
+    },
     "feedback": {
       ".read": false,
       "$id": {

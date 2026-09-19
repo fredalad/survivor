@@ -53,6 +53,10 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
 13. Sharing must be obvious: black "Share" button in the header and sheet actions; a 3-step dialog (buy seats,
     invite by email, send your link); a one-time "Playing with a group?" nudge until the owner has shared. One
     invite link (`/?join=<ownerUid>`) both invites new people and lets existing members back in all season.
+    **The link is a shortcut, not a requirement** (2026-09-19): `invite` also writes `invitesByEmail/{emailKey}/{ownerUid}`,
+    readable by the invitee; the home page lists pending invites for the signed-in address with a Join button.
+    Join, revoke and the owner all clear the index entry. Rules: read by matching email only; delete-only writes by
+    the owner or the invitee; creation is server-side only.
 14. Domain survivorsheets.com (GoDaddy, no email or extras) on Firebase Hosting; bare and www both serve over HTTPS.
     `authDomain` is `survivorsheets.com` so Google sign-in shows the real domain.
 15. Support email is `support@survivorsheets.com` (set in `app-config.json`), forwarded to Nick's Gmail by ImprovMX
@@ -113,7 +117,8 @@ Page modes: `demo` (signed out, free preview) → `home` (only when >1 destinati
 
 Database shape: `users/{uid}/{email,boards,slots,seats,team,invites,memberOf}`, `boards/{id}/{meta,paths}`,
 `odds/2026/{meta,games,optimal}` (game key `{week}_{AWAY}_{HOME}` with ESPN abbreviations), `purchases/{stripeSessionId}`,
-`feedback/{pushId}` (feature requests, write-only from clients).
+`feedback/{pushId}` (feature requests, write-only from clients), `invitesByEmail/{emailKey}/{ownerUid}` (pending invites
+indexed for the invitee).
 Email keys replace `.` with `,`.
 
 ## How odds and results reach the board

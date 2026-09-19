@@ -141,7 +141,9 @@ exports.invite = onCall(async (req) => {
   const used = Object.keys(team).length + Object.keys(invites).length;
   const seats = u.seats || 0;
   if (used >= seats) throw new HttpsError("resource-exhausted", "No seats left. Buy a seat first.");
-  await db().ref(`users/${uid}/invites/${key}`).set({ email, at: Date.now(), ownerEmail: req.auth.token.email || null });
+  const rec = { email, at: Date.now(), ownerEmail: req.auth.token.email || null };
+  // invitesByEmail lets the invitee find the invite by signing in, without the owner's link.
+  await db().ref().update({ [`users/${uid}/invites/${key}`]: rec, [`invitesByEmail/${key}/${uid}`]: rec });
   return { ok: true, left: seats - used - 1 };
 });
 

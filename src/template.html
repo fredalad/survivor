@@ -310,7 +310,7 @@ let board=null, boardMeta=null, role=null, store=null, pathsLoaded=false;
 let slots={}, slotsLoaded=false;            // purchased path slots on the board owner's account
 let homeBoards={}, sharedBoards={}, homeLoaded=false, modal=null;
 let pool={seats:0, team:{}, invites:{}, slots:{}};   // the signed-in user's own pool: who they've let in
-let ownerTeam={}, joinInvite=null, gateKind=null, sharedLoaded=false, myBoardCount=0, sharedOwnerCount=0;
+let ownerTeam={}, joinInvite=null, gateKind=null, sharedLoaded=false, myBoardCount=0, sharedOwnerCount=0, myInvites={};   // myInvites: pending invites for my email, by owner uid
 const JOIN_PARAM = PARAMS.get("join");
 const detach=[];
 
@@ -562,11 +562,13 @@ function renderHome(){
   if(PARAMS.get("canceled")) h+='<div class="banner">Checkout canceled. Nothing was charged.</div>';
   if(!homeLoaded) h+='<p class="muted">Loading…</p>';
   else if(!ids.length && !owners.length) h+='<p>You don\'t have a sheet yet. A sheet is one full 20-leg pick plan, with lines refreshed every 10 minutes, shared live with everyone in your pool. Running more than one entry? Buy a sheet for each.</p>';
+  const inv=Object.entries(myInvites).filter(([o])=>!sharedBoards[o] && o!==user.uid);
+  if(inv.length) h+='<div class="banner"><b>You\'re invited.</b> '+inv.map(([o,x])=>'<span>'+esc(x.ownerEmail||"A sheet owner")+' invited you to their pool. </span><button class="btn small primary" onclick="joinPool(\''+o+'\')">Join '+esc((x.ownerEmail||"their").replace(/@.*/,""))+'\'s pool</button>').join(' ')+'</div>';
   h+='<div class="cards">'+ids.map(id=>'<a class="card" href="'+location.pathname+'?b='+encodeURIComponent(id)+'"><div class="nm">My sheets</div><div class="meta">'+nslots+' sheet'+(nslots===1?'':'s')+' · shared with your pool</div></a>').join('')
     +owners.map(o=>{ const bs=sharedBoards[o]; const [id,m]=Object.entries(bs)[0]; return '<a class="card" href="'+location.pathname+'?b='+encodeURIComponent(id)+'"><div class="nm">'+esc((m.ownerEmail||"Shared").replace(/@.*/,""))+'\'s sheets</div><div class="meta">'+esc(m.ownerEmail||"")+' · shared with you</div></a>'; }).join('')
     +(ids.length?'':'<button class="card" onclick="openModal(\'buypath\')"><div class="nm">+ Buy a sheet</div><div class="meta">$'+APP.priceSheet+' each, for the '+SEASON+' season</div></button>')+'</div>';
   if(ids.length) h+='<p class="muted" style="display:flex;align-items:center;gap:8px"><span>Sharing with '+Object.keys(pool.team).length+' '+(Object.keys(pool.team).length===1?'person':'people')+' · '+si.used+' of '+si.seats+' seat'+(si.seats===1?'':'s')+' used.</span><button class="btn small primary share" onclick="openModal(\'pool\')">Share</button></p>';
-  h+='<p class="muted">Invited to someone\'s pool? Open the invite link they sent you while signed in as '+esc(user.email||"this account")+'. · <a href="terms.html">Terms &amp; privacy</a></p>';
+  if(!inv.length) h+='<p class="muted">Invited to someone\'s pool? Invites show up here as soon as you sign in with the address they invited'+(user.email?' (you\'re signed in as '+esc(user.email)+')':'')+'. · <a href="terms.html">Terms &amp; privacy</a></p>';
   el.innerHTML=h;
 }
 function renderGate(){
@@ -627,7 +629,7 @@ function poolSection(){
   h+='<div class="field"><input id="pl-email" type="email" placeholder="friend@example.com"'+(si.left?'':' disabled')+'><button class="btn primary" onclick="invite()"'+(si.left?'':' disabled')+'>Invite</button></div>';
   if(!si.left) h+='<p class="muted" style="margin:2px 0 0">Buy a seat first, then this unlocks.</p>';
   h+='<div class="step"><b>3</b><span>Send them your link</span></div>';
-  h+='<div class="field"><input readonly value="'+esc(inviteUrl())+'" onclick="this.select()"><button class="btn primary" onclick="copyText(inviteUrl())">Copy link</button></div><p class="muted" style="margin:2px 0 0">Text or email it. They sign in with the address you invited and land on your sheets. The same link keeps working for them all season.</p>';
+  h+='<div class="field"><input readonly value="'+esc(inviteUrl())+'" onclick="this.select()"><button class="btn primary" onclick="copyText(inviteUrl())">Copy link</button></div><p class="muted" style="margin:2px 0 0">Text or email it, or just tell them to sign in at survivorsheets.com with the address you invited — the invite shows up on their home page either way. The link keeps working for them all season.</p>';
   if(team.length) h+='<div class="eyebrow" style="margin-top:14px">Sharing with</div><ul class="list">'+team.map(([uid,x])=>'<li><span style="flex:1">'+esc(x.email||uid)+'</span><button class="btn small" onclick="removeMember(\''+uid+'\')">Remove</button></li>').join('')+'</ul>';
   if(inv.length) h+='<div class="eyebrow" style="margin-top:14px">Invited, not joined yet</div><ul class="list">'+inv.map(([k,x])=>'<li><span style="flex:1">'+esc(x.email||k)+'</span><button class="btn small" onclick="revokeInvite(\''+k+'\')">Revoke</button></li>').join('')+'</ul>';
   return h;
@@ -642,7 +644,7 @@ function sheetHtml(){
 // ---------- sheet + pool management ----------
 async function renameSheet(){ const n=(document.getElementById("sh-name").value||"").trim(); if(!n) return; try{ await db.ref("boards/"+board+"/meta/name").set(n.slice(0,60)); toast("Renamed."); }catch(e){ toast("Could not rename ("+(e.code||"error")+")."); } }
 async function removeMember(uid){ const m=pool.team[uid]||{}; if(!confirm("Remove "+(m.email||"this person")+" from your pool? They lose access to all your sheets and the seat frees up.")) return; try{ await db.ref("users/"+user.uid+"/team/"+uid).remove(); toast("Removed."); }catch(e){ toast("Could not remove ("+(e.code||"error")+")."); } }
-async function revokeInvite(k){ try{ await db.ref("users/"+user.uid+"/invites/"+k).remove(); toast("Invite revoked."); }catch(e){ toast("Could not revoke ("+(e.code||"error")+")."); } }
+async function revokeInvite(k){ try{ await db.ref("users/"+user.uid+"/invites/"+k).remove(); await db.ref("invitesByEmail/"+k+"/"+user.uid).remove().catch(()=>{}); toast("Invite revoked."); }catch(e){ toast("Could not revoke ("+(e.code||"error")+")."); } }
 async function invite(){
   const el=document.getElementById("pl-email"); const email=(el.value||"").trim().toLowerCase();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast("Enter a valid email address."); return; }
@@ -653,12 +655,14 @@ async function invite(){
     toast("Invited "+email+". Your link is copied. Send it to them; they sign in with that address.");
   }catch(e){ toast(e.message||"Could not invite."); }
 }
-async function joinPool(){
-  const owner=JOIN_PARAM;
+async function joinPool(owner){
+  owner=owner||JOIN_PARAM;
   try{
     await db.ref("users/"+owner+"/team/"+user.uid).set({email:user.email||null, joined:Date.now()});
     await db.ref("users/"+user.uid+"/memberOf/"+owner).set(true).catch(()=>{});
     await db.ref("users/"+owner+"/invites/"+emailKey(user.email)).remove().catch(()=>{});
+    await db.ref("invitesByEmail/"+emailKey(user.email)+"/"+owner).remove().catch(()=>{});
+    track("pool_joined", {via: JOIN_PARAM ? "link" : "home"});
     location.href=location.pathname;
   }catch(e){ toast("Could not join ("+(e.code||"error")+")."); }
 }
@@ -730,6 +734,7 @@ function watchPool(){
   sub("users/"+user.uid+"/slots", s=>{ pool.slots=s.val()||{}; render(); });
   sub("users/"+user.uid+"/boards", s=>{ myBoardCount=Object.keys(s.val()||{}).length; render(); });
   sub("users/"+user.uid+"/memberOf", s=>{ sharedOwnerCount=Object.keys(s.val()||{}).length; render(); });
+  if(user.email) sub("invitesByEmail/"+emailKey(user.email), s=>{ myInvites=s.val()||{}; render(); }, ()=>{ myInvites={}; render(); });
 }
 function watchJoin(){
   gate("join");
