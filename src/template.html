@@ -78,6 +78,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .stat .v{font-family:var(--font-display);font-size:26px;font-weight:600;line-height:1.05}
 .stat .l{font-size:12px;color:var(--muted)}
 .stat.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stat .l a{color:var(--accent-ink);font-weight:500}
+.changes li{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}
+.changes .lg{font-family:var(--font-display);font-weight:600}
+.changes .mv s{color:var(--muted)} .changes .mv .num{color:var(--muted);margin-left:6px}
+.changes .dt{font-size:12px;color:var(--muted)}
+.changes li.recent{background:var(--pick);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:6px}
 .stat .v.out{color:var(--bad)} .stat .v.alive{color:var(--good-ink)}
 
 /* layout */
@@ -380,10 +386,16 @@ function togglePick(legId, team){
 const WEEK_MS=7*86400000;
 function recentlyMoved(legId){ const c=OPT.changes&&OPT.changes[legId]; return !!(c && Date.now()-c.at<WEEK_MS); }
 function optimalNote(){
-  if(!OPT.updated) return "Reference sheet solved from the season-opening lines; it re-solves from live lines once they stream in.";
+  if(!OPT.updated) return "Solved from the season-opening lines; re-solves once live lines stream in.";
   const moved=LEGS.filter(l=>recentlyMoved(l.id)); const d=new Date(OPT.updated);
   const when=d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):MON[d.getMonth()]+" "+d.getDate();
-  return "Re-solved from live lines "+when+(moved.length?" · changed this week: "+moved.map(l=>l.short+" "+esc(OPT.changes[l.id].from||"–")+"→"+esc(OPT.changes[l.id].to||"–")).join(", "):" · no changes this week")+(OPT.lockedLeg?". Held until "+(legById(OPT.lockedLeg)||{label:"this week"}).label+" is done.":". Updates hourly until the week's first kickoff.");
+  const changed = moved.length ? '<a href="#" onclick="openModal(\'changes\');return false">'+moved.length+' leg'+(moved.length===1?'':'s')+' changed this week</a>' : 'no changes this week';
+  return "Re-solved "+when+" · "+changed+(OPT.lockedLeg?" · held until "+(legById(OPT.lockedLeg)||{label:"this week"}).label+" is done":" · updates hourly until kickoff");
+}
+function changesHtml(){
+  const rows=LEGS.filter(l=>OPT.changes&&OPT.changes[l.id]).map(l=>{ const c=OPT.changes[l.id]; const d=new Date(c.at); const e=c.to&&TL[c.to]&&TL[c.to][l.id];
+    return '<li'+(recentlyMoved(l.id)?' class="recent"':'')+'><span class="lg">'+l.short+'</span><span class="mv"><s>'+esc(c.from||"–")+'</s> → <b>'+esc(c.to||"–")+'</b>'+(e?' <span class="num">'+pct(e.p)+'</span>':'')+'</span><span class="dt">'+MON[d.getMonth()]+" "+d.getDate()+'</span></li>'; });
+  return '<h2>What changed on Optimal</h2><p class="muted">The Optimal sheet re-solves from live lines until each week\'s first kickoff, then holds until the week is done. Legs already played never change. Highlighted rows changed in the last 7 days; the % is the new pick\'s current win chance.</p>'+(rows.length?'<ul class="list changes">'+rows.join('')+'</ul>':'<p class="muted">No changes yet this season.</p>');
 }
 function pathStats(p){
   const picks=p.picks||{}; let n=0, prod=1, weakest=null, w=0, l=0;
@@ -479,7 +491,7 @@ function renderSummary(){
   const weakest = s.weakest ? s.weakest.team+' '+pct(s.weakest.p)+' <span style="font-size:14px;color:var(--muted)">'+s.weakest.leg.label+'</span>' : '—';
   const record = (s.w+s.l) ? '<div class="stat"><div class="v '+(s.l?'out':'alive')+'">'+(s.l?'OUT':'ALIVE')+'</div><div class="l">'+s.w+'–'+s.l+' so far</div></div>' : '';
   const actions = p.locked
-    ? '<span class="l" style="flex-basis:100%">'+optimalNote()+' Duplicate it to edit.</span>'+(mode==="board"?'<button class="btn small" onclick="duplicatePath()">Duplicate</button>':'<button class="btn small primary" onclick="paywall()">Buy a sheet to edit</button>')
+    ? '<span class="l" style="flex-basis:100%">'+optimalNote()+'</span>'+(mode==="board"?'<button class="btn small" onclick="duplicatePath()">Duplicate</button>':'<button class="btn small primary" onclick="paywall()">Buy a sheet to edit</button>')
     : '<button class="btn small" onclick="renamePath()">Rename</button><button class="btn small" onclick="duplicatePath()">Duplicate</button><button class="btn small" onclick="clearPicks()">Clear picks</button><button class="btn small" onclick="deletePath()">Delete</button>';
   document.getElementById("summary").innerHTML =
     '<div class="stat"><div class="v num">'+s.n+'<span style="font-size:16px;color:var(--muted)"> / 20</span></div><div class="l">legs picked on '+esc(p.name)+'</div></div>'
@@ -601,7 +613,7 @@ function closeModal(){ modal=null; renderModal(); }
 function refreshModal(){ if(modal==="sheet"||modal==="pool") renderModal(); }
 function renderModal(){
   const r=document.getElementById("modal-root"); if(!modal){ r.innerHTML=""; return; }
-  const h = modal==="signin" ? signInHtml() : modal==="buy" ? buyHtml() : modal==="buypath" ? buyPathHtml() : modal==="pool" ? '<h2>Share your sheets</h2>'+poolSection() : modal==="idea" ? ideaHtml() : sheetHtml();
+  const h = modal==="signin" ? signInHtml() : modal==="buy" ? buyHtml() : modal==="buypath" ? buyPathHtml() : modal==="pool" ? '<h2>Share your sheets</h2>'+poolSection() : modal==="idea" ? ideaHtml() : modal==="changes" ? changesHtml() : sheetHtml();
   r.innerHTML='<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">'+h+'<div class="modal-foot"><button class="btn small" onclick="closeModal()">Close</button></div></div></div>';
   const f=r.querySelector("textarea, input:not([readonly])"); if(f) f.focus();
 }
