@@ -62,6 +62,9 @@ what GitHub Pages serves at fredalad.github.io/survivor; Nick and his friends st
     secret and the domain verified in Resend (records on the `send.` subdomain and `resend._domainkey`, so no clash
     with the root SPF). If the secret is empty the invite still succeeds and the function logs `mail skipped`; the
     client toast says whether the email went out (`emailed` in the response).
+22. **The free Optimal preview ends after Week 4** (announced 2026-09-19 in the FAQ and the preview banner). Once Week 4
+    is complete (Monday night, 2026-10-05), signed-out visitors should no longer see the Optimal sheet; it stays included
+    with every paid sheet. **Enforcement is not built yet** — the demo mode still shows it. Build the gate before Oct 5.
 14. Domain survivorsheets.com (GoDaddy, no email or extras) on Firebase Hosting; bare and www both serve over HTTPS.
     `authDomain` is `survivorsheets.com` so Google sign-in shows the real domain.
 15. Support email is `support@survivorsheets.com` (set in `app-config.json`), forwarded to Nick's Gmail by ImprovMX
@@ -223,7 +226,8 @@ everyone; that is a safe state and it is not needed.
    them in Cloud Logs Explorer with `resource.labels.service_name="fetchodds" textPayload:"optimal"` — the
    `firebase functions:log` CLI returns arbitrary windows and its output does not pipe reliably in PowerShell.
    Still to observe once: the resume to hourly on the first pass after Monday night's game is final.
-6. Old GitHub Pages board keeps working without live odds. Migrate with `tools/admin.py claim-board --board
+6. Build the post-Week-4 gate on the free preview (decision 22) before 2026-10-05.
+7. Old GitHub Pages board keeps working without live odds. Migrate with `tools/admin.py claim-board --board
    FcNiUIfqtOT6tBjo --email <owner>` when Nick wants, then remove the rules exception.
 
 ## Style notes for UI work

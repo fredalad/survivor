@@ -441,7 +441,7 @@ setInterval(updateLines, 30000);
 function renderBanner(){
   const el=document.getElementById("banner"); let h="";
   const dismiss='<span class="spacer"></span><button class="btn small" onclick="dismissBanner()">Got it</button>';
-  if(mode==="demo") h='<div class="banner"><b>Free preview.</b> This is the Optimal sheet, re-solved from live lines each week until the first kickoff, then held until the week is done. Buy a sheet to build your own plan and share it with your pool.<span class="spacer"></span><button class="btn small primary" onclick="paywall()">Buy a sheet · $'+APP.priceSheet+'</button><button class="btn small" onclick="openModal(\'signin\')">Sign in</button></div>';
+  if(mode==="demo") h='<div class="banner"><b>Free preview through Week 4.</b> This is the Optimal sheet, re-solved from live lines each week until the first kickoff, then held until the week is done. After Week 4 it\'s part of every paid sheet. Buy a sheet to build your own plan and share it with your pool.<span class="spacer"></span><button class="btn small primary" onclick="paywall()">Buy a sheet · $'+APP.priceSheet+'</button><button class="btn small" onclick="openModal(\'signin\')">Sign in</button></div>';
   else if(PARAMS.get("paid")==="path") h='<div class="banner">Payment received. '+(freeSlots().length?'Click <b>+ New sheet</b> to set it up.':'Your new sheet is being added…')+dismiss+'</div>';
   else if(PARAMS.get("paid")==="seats") h='<div class="banner">Seats added. Now invite people with <b>Share</b>.'+dismiss+'</div>';
   else if(mode==="board" && role==="owner" && !Object.keys(pool.team).length && !Object.keys(pool.invites).length && !nudgeDismissed()) h='<div class="banner"><b>Playing with a group?</b> Share your sheets and everyone sees every pick live. Each extra login is $'+APP.priceSeats+' for the season.<span class="spacer"></span><button class="btn small primary share" onclick="openModal(\'sheet\')">Share</button><button class="btn small" onclick="dismissNudge()">Not now</button></div>';
@@ -631,7 +631,7 @@ function poolSection(){
   h+='<div class="step"><b>3</b><span>Send them your link</span></div>';
   h+='<div class="field"><input readonly value="'+esc(inviteUrl())+'" onclick="this.select()"><button class="btn primary" onclick="copyText(inviteUrl())">Copy link</button></div><p class="muted" style="margin:2px 0 0">Invitees get this link by email the moment you invite them — some inboxes (Yahoo, AOL) file the first one under spam, so text it too, or just tell them to sign in at survivorsheets.com with the address you invited and the invite shows up on their home page. The link keeps working all season.</p>';
   if(team.length) h+='<div class="eyebrow" style="margin-top:14px">Sharing with</div><ul class="list">'+team.map(([uid,x])=>'<li><span style="flex:1">'+esc(x.email||uid)+'</span><button class="btn small" onclick="removeMember(\''+uid+'\')">Remove</button></li>').join('')+'</ul>';
-  if(inv.length) h+='<div class="eyebrow" style="margin-top:14px">Invited, not joined yet</div><ul class="list">'+inv.map(([k,x])=>'<li><span style="flex:1">'+esc(x.email||k)+'</span><button class="btn small" onclick="revokeInvite(\''+k+'\')">Revoke</button></li>').join('')+'</ul>';
+  if(inv.length) h+='<div class="eyebrow" style="margin-top:14px">Invited, not joined yet</div><ul class="list">'+inv.map(([k,x])=>'<li><span style="flex:1">'+esc(x.email||k)+'</span><button class="btn small" onclick="revokeInvite(\''+k+'\')">Revoke</button></li>').join('')+'</ul><p class="muted" style="margin:4px 0 0;font-size:12px">Haven\'t heard back? Their invite email may be in spam — tell them to check, or text them your link above.</p>';
   return h;
 }
 function sheetHtml(){
@@ -652,7 +652,7 @@ async function invite(){
   try{
     const r=await firebase.functions().httpsCallable("invite")({email}); track("invite_sent", {emailed: !!(r.data&&r.data.emailed)});
     el.value=""; await copyText(inviteUrl());
-    toast(r.data&&r.data.emailed ? "Invited "+email+" — we emailed them your link. It's copied too, in case you want to text it." : "Invited "+email+". Your link is copied. Send it to them; they sign in with that address.");
+    toast(r.data&&r.data.emailed ? "Invited "+email+" — we emailed them your link. Tell them to check spam if it isn't in their inbox. The link is copied too, in case you want to text it." : "Invited "+email+". Your link is copied. Send it to them; they sign in with that address.");
   }catch(e){ toast(e.message||"Could not invite."); }
 }
 async function joinPool(owner){
