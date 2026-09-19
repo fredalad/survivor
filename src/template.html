@@ -195,7 +195,13 @@ tr.focus td.team{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
 .hol-tag.x{color:var(--xm);border-color:var(--xm)}
 .tier-row td{background:var(--surface-2);font-family:var(--font-display);text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--muted);padding:3px 8px}
 
-.rules{margin-top:18px;color:var(--muted);font-size:12px;max-width:80ch;line-height:1.5}
+.foot{display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap;margin-top:18px}
+.rules{flex:1 1 52ch;max-width:80ch;color:var(--muted);font-size:12px;line-height:1.5}
+.rules p{margin:0 0 10px}
+.pricing{flex:1 1 320px;max-width:560px}
+.pricing .cards{margin:8px 0 10px}
+.pricing .fine{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.pricing .fine a{color:var(--accent-ink)}
 .rules b{color:var(--ink);font-weight:500}
 .rules a{color:var(--accent-ink);font-weight:500}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:70;max-width:90vw}
@@ -232,8 +238,10 @@ tr.focus td.team{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
     <div id="banner"></div>
     <div id="focusbar"></div>
     <div id="view"></div>
-    <p class="rules" id="rules"></p>
-    <section id="pricing" class="panel" hidden></section>
+    <footer class="foot">
+      <div class="rules" id="rules"></div>
+      <section id="pricing" class="pricing" hidden></section>
+    </footer>
   </div>
 </main>
 <div id="modal-root"></div>
@@ -407,7 +415,9 @@ function render(){ trackMode();
   document.getElementById("v-weeks").classList.toggle("on", state.view==="weeks");
   document.getElementById("view").innerHTML = state.view==="board" ? renderBoard() : renderWeeks();
   document.documentElement.style.setProperty("--hdr", document.querySelector(".top").offsetHeight+"px");
-  document.getElementById("rules").innerHTML = '<b>How it works.</b> One team per leg, and each team can be used once per sheet across all 20 legs. Lines come from a major sportsbook'+(LINES.live?' and refresh every 10 minutes':', as of '+fmtD(new Date(LINES.at).toISOString().slice(0,10)))+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) are the preseason list from the pick sheet. Kickoffs marked TBD have not been set by the league. <a href="faq.html">Questions? Read the FAQ.</a> · <a href="#" onclick="openModal(\'idea\');return false">Suggest a feature</a> · <a href="terms.html">Terms &amp; privacy</a>';
+  const p0=activePath();
+  const legend = state.view==="board" && p0 ? '<p>Each cell is that team\'s win chance for the leg; darker green is a heavier favorite, grey means underdog, striped is a bye. A gold cell is '+esc(p0.name)+'\'s pick; small colored squares are other sheets\' picks. W and L mark finished games. Purple and red top edges mark Thanksgiving and Christmas games. Click a team to see its opponent in every leg; * marks a neutral-site game.</p>' : '';
+  document.getElementById("rules").innerHTML = legend+'<p><b>How it works.</b> One team per leg, and each team can be used once per sheet across all 20 legs. Lines come from a major sportsbook'+(LINES.live?' and refresh every 10 minutes':', as of '+fmtD(new Date(LINES.at).toISOString().slice(0,10)))+'; win % is the de-vigged moneyline. The Thanksgiving leg is Wed Nov 25 through Black Friday and the Christmas leg is the Dec 24–25 games; Week 12 and Week 16 are the rest of those weeks. A tie counts as a loss. Tiers (S through DS) are the preseason list from the pick sheet. Kickoffs marked TBD have not been set by the league. <a href="faq.html">Questions? Read the FAQ.</a> · <a href="#" onclick="openModal(\'idea\');return false">Suggest a feature</a> · <a href="terms.html">Terms &amp; privacy</a></p>';
   renderPricing();
 }
 function renderHeader(){
@@ -455,7 +465,7 @@ function dismissNudge(){ try{ localStorage.setItem("survivor-sheet:nudge","1"); 
 function dismissBanner(){ ["paid","canceled","session_id"].forEach(k=>PARAMS.delete(k)); history.replaceState(null,"",location.pathname+(PARAMS.toString()?"?"+PARAMS.toString():"")); renderBanner(); }
 function renderPricing(){
   const el=document.getElementById("pricing"); el.hidden = mode!=="demo"; if(el.hidden) return;
-  el.innerHTML='<h2>Pricing</h2><div class="cards"><div class="card"><div class="nm">Sheet · $'+APP.priceSheet+'</div><div class="meta">One full 20-leg plan for the '+SEASON+' season, with lines refreshed every 10 minutes. Running two entries? Buy two sheets.</div></div><div class="card"><div class="nm">Extra login · $'+APP.priceSeats+'</div><div class="meta">Add a friend to your pool. They see and edit every sheet you own, live. Add as many as you like, whenever you like.</div></div></div><p class="muted">One-time purchases, no subscription. Refund within 7 days if no picks have been made on the sheet. <a href="faq.html">FAQ</a> · <a href="terms.html">Terms &amp; privacy</a> · <a href="mailto:'+esc(APP.supportEmail)+'">'+esc(APP.supportEmail)+'</a></p>';
+  el.innerHTML='<div class="eyebrow">Pricing</div><div class="cards"><div class="card"><div class="nm">Sheet · $'+APP.priceSheet+'</div><div class="meta">One full 20-leg plan for the '+SEASON+' season, with lines refreshed every 10 minutes. Running two entries? Buy two sheets.</div></div><div class="card"><div class="nm">Extra login · $'+APP.priceSeats+'</div><div class="meta">Add a friend to your pool. They see and edit every sheet you own, live. Add as many as you like, whenever you like.</div></div></div><p class="fine">One-time purchases, no subscription. Refund within 7 days if no picks have been made on the sheet. <a href="faq.html">FAQ</a> · <a href="terms.html">Terms &amp; privacy</a> · <a href="mailto:'+APP.supportEmail+'">'+APP.supportEmail+'</a></p>';
 }
 function renderPaths(){
   let h = allPaths().map(p=>{ const s=pathStats(p); return '<button class="ptab'+(p.id===state.active?" on":"")+(p.locked?" locked":"")+'" style="--pc:'+colorOf(p)+'" onclick="setActive(\''+p.id+'\')" title="'+(p.locked?'Reference sheet, re-solved from live lines until each week\'s first kickoff':'')+'"><i></i>'+esc(p.name)+' <span class="cnt">'+s.n+'/20</span>'+(p.locked?'<span class="lock">fixed</span>':'')+'</button>'; }).join("");
@@ -519,7 +529,7 @@ function renderBoard(){
     h+='</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div class="rules" style="margin-top:10px">Each cell is that team\'s win chance for the leg; darker green is a heavier favorite, grey means underdog, striped is a bye. A gold cell is '+esc(p.name)+'\'s pick; small colored squares are other sheets\' picks. W and L mark finished games. Purple and red top edges mark Thanksgiving and Christmas games. Click a team to see its opponent in every leg; * marks a neutral-site game.</div>';
+
   return h;
 }
 function renderWeeks(){
